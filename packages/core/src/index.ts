@@ -32,3 +32,8 @@ export * from './vault/file.js';
 export * from './vault/store.js';
 export * from './ipfs/cid.js';
 export * from './ipfs/blobStore.js';
+export * from './verifier/request.js';
+export * from './verifier/report.js';
+export * from './verifier/fetchRecorder.js';
+export * from './verifier/statusFetch.js';
+export * from './verifier/pipeline.js';

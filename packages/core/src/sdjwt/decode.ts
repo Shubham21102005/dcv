@@ -1,6 +1,9 @@
 // Unverified inspection of an SD-JWT / presentation. Everything here is data
 // the verifier pipeline (Step 13) still has to check; nothing is trusted yet.
-import { decodeSdJwt, getClaims, splitSdJwt, type Disclosure } from '@sd-jwt/core';
+// Tolerant by design: a corrupted disclosure is reported, not thrown, so the
+// other checks can still be evaluated.
+import { Disclosure, getClaims, splitSdJwt } from '@sd-jwt/core';
+import { decodeJws } from '../crypto/jws.js';
 import { kidToDid } from '../did/ethr.js';
 import { hasher, type SdJwtVcPayload } from './instance.js';
 
@@ -16,8 +19,10 @@ export interface PeekedSdJwt {
   /** Raw signed payload (still contains `_sd` digest arrays). */
   payload: SdJwtVcPayload;
   disclosures: DecodedDisclosure[];
+  /** Disclosure segments that could not be decoded at all (tampered). */
+  invalidDisclosures: string[];
   kbJwt?: { header: Record<string, unknown>; payload: Record<string, unknown> };
-  /** Payload with the presented disclosures resolved back into place. */
+  /** Payload with the presented (decodable) disclosures resolved back into place. */
   claims: Record<string, unknown>;
   iss: string;
   cnfKid: string;
@@ -46,27 +51,43 @@ function collectDigests(node: unknown, out: string[]): void {
   }
 }
 
+const HASH = { hasher, alg: 'sha-256' };
+
 export async function peekSdJwt(compact: string): Promise<PeekedSdJwt> {
-  const { jwt: issuerJwt } = splitSdJwt(compact);
-  const decoded = await decodeSdJwt(compact, hasher);
-  const payload = decoded.jwt.payload as SdJwtVcPayload;
+  const { jwt: issuerJwt, disclosures: encodedDisclosures, kbJwt: encodedKb } = splitSdJwt(compact);
+  const jwt = decodeJws<SdJwtVcPayload>(issuerJwt);
+  const payload = jwt.payload;
+  if (!payload || typeof payload !== 'object') throw new Error('SD-JWT payload is not an object');
+
+  const valid: Disclosure[] = [];
+  const invalidDisclosures: string[] = [];
+  for (const enc of encodedDisclosures) {
+    try {
+      valid.push(await Disclosure.fromEncode(enc, HASH));
+    } catch {
+      invalidDisclosures.push(enc);
+    }
+  }
   const disclosures: DecodedDisclosure[] = await Promise.all(
-    decoded.disclosures.map(async (d: Disclosure) => ({
-      key: d.key,
-      value: d.value,
-      digest: await d.digest({ hasher, alg: 'sha-256' }),
-      encoded: d.encode(),
-    })),
+    valid.map(async (d) => ({ key: d.key, value: d.value, digest: await d.digest(HASH), encoded: d.encode() })),
   );
-  const claims = await getClaims<Record<string, unknown>>(decoded.jwt.payload, decoded.disclosures, hasher);
+
+  let kbJwt: PeekedSdJwt['kbJwt'];
+  if (encodedKb) {
+    const kb = decodeJws<Record<string, unknown>>(encodedKb);
+    kbJwt = { header: kb.header, payload: kb.payload };
+  }
+
+  const claims = await getClaims<Record<string, unknown>>(payload as Record<string, unknown>, valid, hasher);
   const allDigests = listSdDigests(payload);
   const presented = new Set(disclosures.map((d) => d.digest));
   const cnfKid = typeof payload.cnf?.kid === 'string' ? payload.cnf.kid : '';
   return {
-    header: decoded.jwt.header,
+    header: jwt.header,
     payload,
     disclosures,
-    kbJwt: decoded.kbJwt ? { header: decoded.kbJwt.header, payload: decoded.kbJwt.payload } : undefined,
+    invalidDisclosures,
+    kbJwt,
     claims,
     iss: typeof payload.iss === 'string' ? payload.iss : '',
     cnfKid,
