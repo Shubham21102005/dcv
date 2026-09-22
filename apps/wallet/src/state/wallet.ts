@@ -92,6 +92,10 @@ export class Wallet {
   private emit(): void {
     for (const l of this.listeners) l();
   }
+  /** Public re-render trigger for helpers that mutate the store directly (backup restore). */
+  notify(): void {
+    this.emit();
+  }
 
   // ---- lifecycle ---------------------------------------------------------------------
   /** 'none' (no vault yet) | 'locked' | 'unlocked' */

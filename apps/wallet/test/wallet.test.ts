@@ -175,3 +175,57 @@ describe('idle auto-lock', () => {
     expect(onIdle).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('IPFS backup + VaultPointer restore (memory blob store, fake chain)', () => {
+  it('backup writes ciphertext only; restore from the mnemonic alone brings the credential back', async () => {
+    const { MemoryBlobStore } = await import('@dcv/core/ipfs/blobStore');
+    const { backupToIpfs, restoreFromIpfs } = await import('../src/state/backup');
+    const { PlaintextRejected } = await import('@dcv/core/privacy/opaque');
+    const blobStore = new MemoryBlobStore();
+    const pointers = new Map<string, `0x${string}`>();
+    const chain = {
+      async setPointer(account: { address: string }, locator: `0x${string}`) {
+        pointers.set(account.address, locator);
+        return { txHash: '0xfake' };
+      },
+      async getPointer(owner: string) {
+        return { encryptedLocator: pointers.get(owner) ?? ('0x' as const), updatedAt: 0 };
+      },
+    };
+
+    const { fetchImpl, offer } = fakeIssuer('nonce-backup');
+    const w = makeWallet(fetchImpl);
+    await w.init();
+    const { mnemonic } = await w.create('passphrase-7');
+    const cred = await w.claimOffer(offer);
+    const r = await backupToIpfs(w, { blobStore, chain });
+    expect(r.records).toBe(1);
+    expect(r.cid.startsWith('bafkrei')).toBe(true);
+    // the blob on "IPFS" is opaque and the pointer is ciphertext
+    const blob = await blobStore.cat(r.cid);
+    expect(() => { throw new PlaintextRejected('x'); }).toThrow(); // sanity: class importable
+    const blobText = new TextDecoder('utf-8', { fatal: false }).decode(blob);
+    expect(blobText.includes('credentialSubject')).toBe(false);
+    expect(blobText.includes(cred.holderDid)).toBe(false);
+    expect(pointers.get(r.pointerAddress)!.includes('bafkrei')).toBe(false);
+
+    // wiped device: only the 12 words
+    const fresh = makeWallet();
+    await fresh.init();
+    await fresh.restoreFromMnemonic(mnemonic, 'brand new passphrase');
+    expect(await fresh.listCredentials()).toHaveLength(0);
+    const restored = await restoreFromIpfs(fresh, { blobStore, chain });
+    expect(restored.records).toBe(1);
+    const list = await fresh.listCredentials();
+    expect(list).toHaveLength(1);
+    expect(list[0]?.sdJwt).toBe(cred.sdJwt);
+    // and the restored keys still match the credential binding
+    expect((await fresh.holderAccount(cred.issuerDid)).did).toBe(cred.holderDid);
+
+    // a wallet with a different seed cannot read the pointer or the blob
+    const stranger = makeWallet();
+    await stranger.init();
+    await stranger.create('passphrase-8');
+    await expect(restoreFromIpfs(stranger, { blobStore, chain })).rejects.toThrow(/no backup pointer/);
+  });
+});

@@ -8,6 +8,9 @@ import { isTrustedFor } from '@dcv/core/chain/trustRegistry';
 import { didToAddress } from '@dcv/core/did/ethr';
 import { readStatusBit, verifyStatusListSignature } from '@dcv/core/status/credential';
 import { listIdFromStatusUrl } from '@dcv/core/vc/schema';
+import { KuboBlobStore } from '@dcv/core/ipfs/blobStore';
+import { makePointerChain } from './backup';
+import type { BackupDeps } from './backup';
 import type { StoredCredential } from './wallet';
 
 export const RPC_URL: string = (import.meta.env.VITE_RPC_URL as string | undefined) ?? 'http://127.0.0.1:8545';
@@ -66,4 +69,21 @@ export async function credentialStatus(cred: StoredCredential): Promise<Credenti
   } catch (err) {
     return { state: 'unknown', reason: (err as Error).message };
   }
+}
+
+/** Backup deps wired to the local Kubo API (CORS-enabled by scripts/ipfs.mjs) and Anvil. */
+export async function ipfsBackupDeps(): Promise<BackupDeps> {
+  const d = await loadDeployments();
+  const kubo = new KuboBlobStore({ apiUrl: IPFS_API_URL, gatewayUrl: IPFS_GATEWAY_URL });
+  if (!(await kubo.isReachable())) throw new Error(`IPFS API ${IPFS_API_URL} not reachable (pnpm ipfs)`);
+  return {
+    blobStore: kubo,
+    // read through the public gateway, exactly as a verifier would
+    fetchBlob: async (cid) => {
+      const res = await fetch(`${IPFS_GATEWAY_URL}/ipfs/${cid}`);
+      if (!res.ok) throw new Error(`gateway ${res.status} for ${cid}`);
+      return new Uint8Array(await res.arrayBuffer());
+    },
+    chain: makePointerChain({ rpcUrl: RPC_URL, deployments: d }),
+  };
 }

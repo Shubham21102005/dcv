@@ -28,7 +28,7 @@ export function Restore() {
       <section className="card narrow">
         <h2>Identity restored</h2>
         <p><code>{did}</code></p>
-        <p className="muted">Your pairwise DIDs and keys are back. Credentials come from a backup: import a vault file, or fetch the IPFS backup (Step 16).</p>
+        <p className="muted">Your pairwise DIDs and keys are back. Credentials come from a backup: import a vault file, or fetch your encrypted IPFS backup via its on-chain pointer.</p>
         <button onClick={() => navigate('/backup')}>Go to backup &amp; restore</button>
       </section>
     );

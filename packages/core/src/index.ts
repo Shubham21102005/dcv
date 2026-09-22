@@ -37,3 +37,5 @@ export * from './verifier/report.js';
 export * from './verifier/fetchRecorder.js';
 export * from './verifier/statusFetch.js';
 export * from './verifier/pipeline.js';
+export * from './privacy/opaque.js';
+export * from './ipfs/backupStore.js';
