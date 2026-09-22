@@ -1,0 +1,14 @@
+node_modules/
+dist/
+out/
+cache/
+.ipfs/
+deployments/*.json
+data/issuer.json
+data/issuer.pid
+.env
+test-results/
+playwright-report/
+tools/
+*.log
+.DS_Store

@@ -1,0 +1,24 @@
+{
+  "name": "dcv",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Decentralized Credentials Vault System - local-only W3C Verifiable Credentials demo",
+  "type": "module",
+  "packageManager": "pnpm@12.5.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "pnpm -r --workspace-concurrency=1 --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.6",
+    "concurrently": "10.0.5",
+    "dotenv": "^18.0.1",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3",
+    "vitest": "5.0.1",
+    "wait-on": "9.1.0"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "@dcv/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit --project vault",
+    "test:integration": "vitest run --project integration",
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}
