@@ -10,7 +10,7 @@
   },
   "scripts": {
     "test": "pnpm -r --workspace-concurrency=1 --if-present test",
-    "typecheck": "pnpm -r --if-present typecheck",
+    "typecheck": "pnpm -r --if-present typecheck && tsc -p scripts/tsconfig.json",
     "test:contracts": "forge test --root packages/contracts",
     "chain": "anvil --chain-id 31337 --port 8545",
     "deploy:local": "tsx scripts/deploy.ts",
@@ -19,7 +19,10 @@
     "dev": "node scripts/dev.mjs",
     "ipfs": "node scripts/ipfs.mjs",
     "reset": "node scripts/reset.mjs",
-    "stop:issuer": "node scripts/stop-issuer.mjs"
+    "stop:issuer": "node scripts/stop-issuer.mjs",
+    "e2e": "tsx scripts/e2e.ts",
+    "privacy-scan": "tsx scripts/privacy-scan.ts",
+    "e2e:full": "node scripts/e2e-full.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.13.6",

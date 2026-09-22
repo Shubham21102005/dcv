@@ -39,3 +39,4 @@ export * from './verifier/statusFetch.js';
 export * from './verifier/pipeline.js';
 export * from './privacy/opaque.js';
 export * from './ipfs/backupStore.js';
+export * from './privacy/scan.js';

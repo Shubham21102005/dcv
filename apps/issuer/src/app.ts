@@ -14,6 +14,7 @@ import { claimOffer } from './issue.js';
 import type { Ledger } from './ledger.js';
 import { OfferStore } from './offers.js';
 import { REVOCATION_LIST_ID, StatusListPublisher } from './statusList.js';
+import { HolderDidMemory, issuerPrivacyScan } from './privacy.js';
 
 export interface IssuerConfig {
   issuerName: string;
@@ -37,8 +38,6 @@ export interface IssuerDeps {
   metadata: Record<string, unknown>;
   /** Seconds since epoch; tests override it. */
   now?: () => number;
-  /** Optional hook used by Step 17 (privacy scan). */
-  privacyScan?: () => Promise<unknown>;
 }
 
 const SubjectInput = DegreeSubjectSchema.omit({ id: true });
@@ -58,6 +57,7 @@ export function createIssuerApp(deps: IssuerDeps) {
     listSize: config.statusListSize,
     now: deps.now,
   });
+  const holderDids = new HolderDidMemory();
   const issueDeps = {
     ledger,
     statusList,
@@ -144,6 +144,7 @@ export function createIssuerApp(deps: IssuerDeps) {
     const result = await claimOffer(issueDeps, offers.get(id)!, body.proof);
     if (!result.ok) return c.json({ error: result.error }, result.status);
     offers.markClaimed(id, result.row.id);
+    holderDids.remember(result.holderDid);
     return c.json({ sdJwt: result.sdJwt, credentialId: result.row.id, statusListIndex: result.row.statusListIndex });
   });
 
@@ -241,12 +242,17 @@ export function createIssuerApp(deps: IssuerDeps) {
   app.post('/admin/reset', async (c) => {
     ledger.reset();
     offers.clear();
+    holderDids.clear();
     const published = await statusList.publish();
     return c.json({ ok: true, version: published.version });
   });
   app.get('/admin/privacy-scan', async (c) => {
-    if (!deps.privacyScan) return c.json({ error: 'privacy scan not available' }, 501);
-    return c.json(await deps.privacyScan());
+    try {
+      return c.json(await issuerPrivacyScan({ publicClient, blobStore: deps.blobStore, ledger, holderDids }));
+    } catch (err) {
+      if ((err as Error).name === 'NoTerms') return c.json({ error: 'no PII in the ledger yet - issue a credential first' }, 409);
+      throw err;
+    }
   });
 
   app.onError((err, c) => {

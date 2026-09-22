@@ -43,6 +43,5 @@ export async function buildIssuerDeps(overrides: Partial<IssuerDeps> & { ledgerF
     blobStore: overrides.blobStore ?? (await resolveBlobStore({ apiUrl: cfg.ipfsApiUrl, gatewayUrl: cfg.ipfsGatewayUrl, log: console.warn })),
     metadata,
     ...(overrides.now ? { now: overrides.now } : {}),
-    ...(overrides.privacyScan ? { privacyScan: overrides.privacyScan } : {}),
   };
 }

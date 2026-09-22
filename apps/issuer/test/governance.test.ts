@@ -48,7 +48,19 @@ describe('issuer: governance routes (admin key)', () => {
     });
   });
 
-  it('privacy scan is 501 until Step 17 wires it', async () => {
-    expect((await app.request('/admin/privacy-scan')).status).toBe(501);
+  it('privacy scan: 409 with an empty ledger, then 0 hits for real PII after an issuance', async () => {
+    const { issueToHolder } = await import('./helpers.js');
+    const empty = await app.request('/admin/privacy-scan');
+    expect([200, 409]).toContain(empty.status); // other files may have issued already on the shared chain
+    const { holderDid } = await issueToHolder(app, deps.issuerDid);
+    const res = await app.request('/admin/privacy-scan');
+    expect(res.status).toBe(200);
+    const r = (await res.json()) as { terms: number; hits: unknown[]; blocks: number; blobs: number; termList: string[] };
+    expect(r.terms).toBeGreaterThan(0);
+    expect(r.termList).toContain('Alice Example');
+    expect(r.termList).toContain(holderDid);
+    expect(r.blocks).toBeGreaterThan(1);
+    expect(r.blobs).toBeGreaterThan(0);
+    expect(r.hits).toEqual([]);
   });
 });
