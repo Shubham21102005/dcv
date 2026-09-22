@@ -19,7 +19,7 @@ describe('VaultStore (IndexedDB via fake-indexeddb)', () => {
   it('stolen-device test: raw rows never contain the plaintext in any encoding', async () => {
     const store = new VaultStore('dcv-test-1');
     await store.clear();
-    const { keyring, meta } = await Keyring.create('pw', FAST);
+    const { keyring, meta } = await Keyring.create('pw', { kdf: FAST });
     await store.putMeta(meta);
     const key = await keyring.vaultKey();
     const rec = await encryptRecord(key, newRecordHeader('credential'), { credentialSubject: { ...SAMPLE_DEGREE_SUBJECT, id: 'did:ethr:anvil:0x1' } });
@@ -44,7 +44,7 @@ describe('VaultStore (IndexedDB via fake-indexeddb)', () => {
   it('export -> import -> unlock works', async () => {
     const store = new VaultStore('dcv-test-2');
     await store.clear();
-    const { keyring, meta } = await Keyring.create('pw', FAST);
+    const { keyring, meta } = await Keyring.create('pw', { kdf: FAST });
     const key = await keyring.vaultKey();
     await store.putMeta(meta);
     await store.put(await encryptRecord(key, newRecordHeader('credential'), { v: 1 }));

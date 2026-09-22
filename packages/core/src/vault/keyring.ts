@@ -9,7 +9,7 @@ import { DCV_HKDF_SALT, hkdfSha256 } from '../crypto/hkdf.js';
 import { generateMnemonic12, seedFromMnemonic } from '../crypto/mnemonic.js';
 import { secpAddress, secpKeyFromHkdf } from '../crypto/secp.js';
 import { addressToDid } from '../did/ethr.js';
-import { deriveWrapKey, newKdfParams, type KdfParams } from './kdf.js';
+import { deriveWrapKey, newKdfParams, type KdfParams, type WrapKeyDeriver } from './kdf.js';
 import { VaultError, aesGcmDecrypt, aesGcmEncrypt } from './record.js';
 
 export const SEED_AAD = 'dcv/seed/v1';
@@ -32,6 +32,13 @@ export interface HolderAccount {
   privateKey: Hex;
 }
 
+export interface KeyringOptions {
+  /** Override argon2id (e.g. run it in a Web Worker). Defaults to the in-thread implementation. */
+  deriveWrapKey?: WrapKeyDeriver;
+  /** KDF parameter overrides (tests use small values). */
+  kdf?: Partial<Omit<KdfParams, 'salt' | 'name'>>;
+}
+
 async function importAesKey(raw: Uint8Array): Promise<CryptoKey> {
   return globalThis.crypto.subtle.importKey('raw', raw as BufferSource, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
 }
@@ -44,29 +51,22 @@ export class Keyring {
   }
 
   /** Generate a new 12-word mnemonic and wrap its seed under `passphrase`. */
-  static async create(
-    passphrase: string,
-    kdf: Partial<Omit<KdfParams, 'salt' | 'name'>> = {},
-  ): Promise<{ keyring: Keyring; mnemonic: string; meta: VaultMeta }> {
+  static async create(passphrase: string, opts: KeyringOptions = {}): Promise<{ keyring: Keyring; mnemonic: string; meta: VaultMeta }> {
     const mnemonic = generateMnemonic12();
-    const { keyring, meta } = await Keyring.fromMnemonic(mnemonic, passphrase, kdf);
+    const { keyring, meta } = await Keyring.fromMnemonic(mnemonic, passphrase, opts);
     return { keyring, mnemonic, meta };
   }
 
   /** Restore from a mnemonic and wrap the seed under a (possibly new) passphrase. */
-  static async fromMnemonic(
-    mnemonic: string,
-    passphrase: string,
-    kdf: Partial<Omit<KdfParams, 'salt' | 'name'>> = {},
-  ): Promise<{ keyring: Keyring; meta: VaultMeta }> {
+  static async fromMnemonic(mnemonic: string, passphrase: string, opts: KeyringOptions = {}): Promise<{ keyring: Keyring; meta: VaultMeta }> {
     let seed: Uint8Array;
     try {
       seed = await seedFromMnemonic(mnemonic);
     } catch {
       throw new VaultError('INVALID_MNEMONIC');
     }
-    const params = newKdfParams(kdf);
-    const wrapKey = await deriveWrapKey(passphrase, params);
+    const params = newKdfParams(opts.kdf ?? {});
+    const wrapKey = await (opts.deriveWrapKey ?? deriveWrapKey)(passphrase, params);
     const { iv, ct } = await aesGcmEncrypt(wrapKey, seed, SEED_AAD);
     const keyring = new Keyring(seed);
     const meta: VaultMeta = {
@@ -81,9 +81,9 @@ export class Keyring {
   }
 
   /** Unwrap the seed with the passphrase used at creation. */
-  static async unlock(meta: VaultMeta, passphrase: string): Promise<Keyring> {
+  static async unlock(meta: VaultMeta, passphrase: string, opts: KeyringOptions = {}): Promise<Keyring> {
     if (meta.v !== 1) throw new VaultError('BAD_FORMAT', `unsupported vault meta v${String(meta.v)}`);
-    const wrapKey = await deriveWrapKey(passphrase, meta.kdf);
+    const wrapKey = await (opts.deriveWrapKey ?? deriveWrapKey)(passphrase, meta.kdf);
     try {
       const seed = await aesGcmDecrypt(wrapKey, b64u.decode(meta.iv), b64u.decode(meta.wrappedSeed), SEED_AAD);
       return new Keyring(seed);

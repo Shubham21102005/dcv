@@ -22,9 +22,10 @@ export function newKdfParams(overrides: Partial<Omit<KdfParams, 'salt' | 'name'>
   return { ...DEFAULT_KDF, ...overrides, salt: b64u.encode(randomBytes(16)) };
 }
 
-export async function deriveWrapKey(passphrase: string, kdf: KdfParams): Promise<CryptoKey> {
+/** argon2id -> 32 raw bytes. Runs anywhere hash-wasm runs (main thread or a Web Worker). */
+export async function deriveWrapKeyBytes(passphrase: string, kdf: KdfParams): Promise<Uint8Array> {
   if (kdf.name !== 'argon2id') throw new Error(`unsupported kdf ${String(kdf.name)}`);
-  const raw = await argon2id({
+  return argon2id({
     password: passphrase.normalize('NFKC'),
     salt: b64u.decode(kdf.salt),
     iterations: kdf.t,
@@ -33,5 +34,15 @@ export async function deriveWrapKey(passphrase: string, kdf: KdfParams): Promise
     hashLength: 32,
     outputType: 'binary',
   });
-  return globalThis.crypto.subtle.importKey('raw', raw as BufferSource, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
 }
+
+/** Import raw key bytes as a non-extractable AES-GCM CryptoKey (the bytes should then be discarded). */
+export async function importWrapKey(raw: Uint8Array): Promise<CryptoKey> {
+  const key = await globalThis.crypto.subtle.importKey('raw', raw as BufferSource, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+  raw.fill(0);
+  return key;
+}
+
+export type WrapKeyDeriver = (passphrase: string, kdf: KdfParams) => Promise<CryptoKey>;
+
+export const deriveWrapKey: WrapKeyDeriver = async (passphrase, kdf) => importWrapKey(await deriveWrapKeyBytes(passphrase, kdf));

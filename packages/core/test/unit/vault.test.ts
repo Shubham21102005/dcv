@@ -7,7 +7,7 @@ const FAST = { t: 1, m: 8192 };
 
 describe('AES-GCM vault records', () => {
   it('round-trips a value', async () => {
-    const { keyring } = await Keyring.create('pw', FAST);
+    const { keyring } = await Keyring.create('pw', { kdf: FAST });
     const key = await keyring.vaultKey();
     const header = newRecordHeader('credential');
     const rec = await encryptRecord(key, header, { hello: 'world', n: 1 });
@@ -17,7 +17,7 @@ describe('AES-GCM vault records', () => {
   });
 
   it('fails when ciphertext is swapped between rows (AAD binds the header)', async () => {
-    const { keyring } = await Keyring.create('pw', FAST);
+    const { keyring } = await Keyring.create('pw', { kdf: FAST });
     const key = await keyring.vaultKey();
     const a = await encryptRecord(key, newRecordHeader('credential'), { v: 'a' });
     const b = await encryptRecord(key, newRecordHeader('credential'), { v: 'b' });
@@ -26,7 +26,7 @@ describe('AES-GCM vault records', () => {
   });
 
   it('fails when a single ciphertext byte is tampered', async () => {
-    const { keyring } = await Keyring.create('pw', FAST);
+    const { keyring } = await Keyring.create('pw', { kdf: FAST });
     const key = await keyring.vaultKey();
     const rec = await encryptRecord(key, newRecordHeader('setting'), { v: 'x' });
     const bytes = b64u.decode(rec.ct);
@@ -35,14 +35,14 @@ describe('AES-GCM vault records', () => {
   });
 
   it('cannot be decrypted with another keyring', async () => {
-    const a = await Keyring.create('pw', FAST);
-    const b = await Keyring.create('pw', FAST);
+    const a = await Keyring.create('pw', { kdf: FAST });
+    const b = await Keyring.create('pw', { kdf: FAST });
     const rec = await encryptRecord(await a.keyring.vaultKey(), newRecordHeader('credential'), { v: 'x' });
     await expect(decryptRecord(await b.keyring.vaultKey(), rec)).rejects.toMatchObject({ code: 'DECRYPT_FAILED' });
   });
 
   it('uses a fresh IV per record', async () => {
-    const { keyring } = await Keyring.create('pw', FAST);
+    const { keyring } = await Keyring.create('pw', { kdf: FAST });
     const key = await keyring.vaultKey();
     const h = newRecordHeader('credential');
     const r1 = await encryptRecord(key, h, { v: 1 });

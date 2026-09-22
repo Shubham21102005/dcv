@@ -85,7 +85,8 @@ export async function waitForPorts(ports, timeoutMs = 60_000) {
 /** PIDs listening on a TCP port. */
 export function pidsOnPort(port) {
   if (process.platform === 'win32') {
-    const out = spawnSync('netstat', ['-ano', '-p', 'TCP'], { encoding: 'utf8' }).stdout ?? '';
+    // Both TCP (IPv4) and TCPv6 rows: Vite binds "localhost", which is often [::1].
+    const out = spawnSync('netstat', ['-ano'], { encoding: 'utf8' }).stdout ?? '';
     const pids = new Set();
     for (const line of out.split('\n')) {
       const m = /^\s*TCP\s+\S+:(\d+)\s+\S+\s+LISTENING\s+(\d+)/.exec(line);
