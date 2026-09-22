@@ -23,3 +23,5 @@ export * from './sdjwt/present.js';
 export * from './sdjwt/decode.js';
 export * from './sdjwt/verify.js';
 export * from './offer/proof.js';
+export * from './status/bitstring.js';
+export * from './status/credential.js';
