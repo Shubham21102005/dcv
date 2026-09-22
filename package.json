@@ -22,9 +22,11 @@
     "stop:issuer": "node scripts/stop-issuer.mjs",
     "e2e": "tsx scripts/e2e.ts",
     "privacy-scan": "tsx scripts/privacy-scan.ts",
-    "e2e:full": "node scripts/e2e-full.mjs"
+    "e2e:full": "node scripts/e2e-full.mjs",
+    "pw": "playwright test -c e2e/playwright.config.ts"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@types/node": "^24.13.6",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
