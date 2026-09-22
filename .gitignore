@@ -14,3 +14,4 @@ playwright-report/
 tools/
 *.log
 .DS_Store
+.scratch/

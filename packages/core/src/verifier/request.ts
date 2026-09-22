@@ -47,8 +47,11 @@ export interface NonceStore {
 
 export class MemoryNonceStore implements NonceStore {
   private readonly entries = new Map<string, { nonce: string; expiresAt: number; consumed: boolean }>();
+  private readonly now: () => number;
 
-  constructor(private readonly now: () => number = () => Math.floor(Date.now() / 1000)) {}
+  constructor(now: () => number = () => Math.floor(Date.now() / 1000)) {
+    this.now = now;
+  }
 
   issue(id: string, nonce: string, ttlSeconds: number): void {
     this.entries.set(id, { nonce, expiresAt: this.now() + ttlSeconds, consumed: false });

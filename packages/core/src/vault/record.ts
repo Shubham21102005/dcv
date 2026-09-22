@@ -21,13 +21,15 @@ export interface VaultRecord {
   ct: string;
 }
 
+export type VaultErrorCode = 'BAD_PASSPHRASE' | 'LOCKED' | 'INVALID_MNEMONIC' | 'DECRYPT_FAILED' | 'BAD_FORMAT';
+
 export class VaultError extends Error {
-  constructor(
-    public readonly code: 'BAD_PASSPHRASE' | 'LOCKED' | 'INVALID_MNEMONIC' | 'DECRYPT_FAILED' | 'BAD_FORMAT',
-    message?: string,
-  ) {
+  readonly code: VaultErrorCode;
+
+  constructor(code: VaultErrorCode, message?: string) {
     super(message ?? code);
     this.name = 'VaultError';
+    this.code = code;
   }
 }
 

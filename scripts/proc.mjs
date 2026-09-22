@@ -70,12 +70,12 @@ function portOpen(port, host = '127.0.0.1') {
   });
 }
 
-/** Resolve when every port accepts TCP connections (or throw after timeoutMs). */
+/** Resolve when every port accepts TCP connections on 127.0.0.1 or ::1 (Vite binds "localhost", often IPv6). */
 export async function waitForPorts(ports, timeoutMs = 60_000) {
   const start = Date.now();
   const pending = new Set(ports);
   while (pending.size) {
-    for (const p of [...pending]) if (await portOpen(p)) pending.delete(p);
+    for (const p of [...pending]) if ((await portOpen(p)) || (await portOpen(p, '::1'))) pending.delete(p);
     if (!pending.size) return;
     if (Date.now() - start > timeoutMs) throw new Error(`timed out waiting for ports ${[...pending].join(', ')}`);
     await new Promise((r) => setTimeout(r, 300));
@@ -97,8 +97,9 @@ export function pidsOnPort(port) {
   return out.split('\n').map((s) => Number(s.trim())).filter(Boolean);
 }
 
-/** Path to a workspace binary's JS entry so we never need a shell (.cmd shims). */
+/** Paths to JS entries of workspace binaries so we never need a shell (.cmd shims). */
 export const nodeBin = {
   tsx: resolve(root, 'node_modules/tsx/dist/cli.mjs'),
-  vite: resolve(root, 'node_modules/vite/bin/vite.js'),
+  /** vite is a dependency of each web app (pnpm does not hoist), so resolve it per app dir. */
+  vite: (appDir) => resolve(appDir, 'node_modules/vite/bin/vite.js'),
 };

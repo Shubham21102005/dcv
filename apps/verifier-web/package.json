@@ -1,0 +1,27 @@
+{
+  "name": "@dcv/verifier-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --strictPort",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.app.json"
+  },
+  "dependencies": {
+    "@dcv/core": "workspace:*",
+    "qrcode.react": "4.2.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "viem": "2.56.8"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  }
+}

@@ -45,16 +45,16 @@ if (deploy.status !== 0) {
 
 // 3. apps (each only if its package exists yet)
 const apps = [
-  { name: 'issuer', dir: 'apps/issuer', args: [nodeBin.tsx, 'src/server.ts'], port: Number(env('ISSUER_PORT', '4001')) },
-  { name: 'verifier-api', dir: 'apps/verifier-api', args: [nodeBin.tsx, 'src/server.ts'], port: Number(env('VERIFIER_PORT', '4002')) },
-  { name: 'verifier-web', dir: 'apps/verifier-web', args: [nodeBin.vite, '--strictPort'], port: 5174 },
-  { name: 'wallet', dir: 'apps/wallet', args: [nodeBin.vite, '--strictPort'], port: 5173 },
+  { name: 'issuer', dir: 'apps/issuer', args: () => [nodeBin.tsx, 'src/server.ts'], port: Number(env('ISSUER_PORT', '4001')) },
+  { name: 'verifier-api', dir: 'apps/verifier-api', args: () => [nodeBin.tsx, 'src/server.ts'], port: Number(env('VERIFIER_PORT', '4002')) },
+  { name: 'verifier-web', dir: 'apps/verifier-web', args: (cwd) => [nodeBin.vite(cwd), '--strictPort'], port: 5174 },
+  { name: 'wallet', dir: 'apps/wallet', args: (cwd) => [nodeBin.vite(cwd), '--strictPort'], port: 5173 },
 ];
 const started = [];
 for (const app of apps) {
   const cwd = resolve(root, app.dir);
   if (!existsSync(resolve(cwd, 'package.json'))) continue;
-  children.push(run(app.name, process.execPath, app.args, { cwd }));
+  children.push(run(app.name, process.execPath, app.args(cwd), { cwd }));
   started.push(app);
 }
 try {
