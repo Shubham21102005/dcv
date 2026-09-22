@@ -14,9 +14,11 @@ const cfg = getConfig();
 const deps = await buildIssuerDeps();
 const { app, boot, statusList } = createIssuerApp(deps);
 
-// Static console (public/index.html) - after the API routes so they win.
-const publicDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'public');
-app.use('/*', serveStatic({ root: publicDir }));
+// Static console (public/index.html) and the shared design package, after the API routes so they win.
+const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const designDir = resolve(appDir, 'node_modules', '@dcv', 'design');
+app.use('/design/*', serveStatic({ root: designDir, rewriteRequestPath: (p) => p.replace(/^\/design/, '') }));
+app.use('/*', serveStatic({ root: resolve(appDir, 'public') }));
 
 const published = await boot();
 console.log(`[issuer] ${deps.issuerDid}`);

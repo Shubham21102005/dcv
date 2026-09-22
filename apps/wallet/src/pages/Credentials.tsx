@@ -3,14 +3,9 @@ import { CLAIM_LABELS, DISCLOSABLE_CLAIMS, type DisclosableClaim } from '@dcv/co
 import { credentialStatus, type CredentialStatus } from '../state/chain';
 import { navigate, useWallet } from '../state/app';
 import type { StoredCredential } from '../state/wallet';
+import { CredentialCard, StatusMark, claimValue } from './CredentialCard';
 
-export function StatusBadge({ status }: { status: CredentialStatus | null }) {
-  if (!status) return <span className="badge neutral">checking…</span>;
-  if (status.state === 'valid') return <span className="badge ok" title={`bit ${status.bit} clear in status list v${status.version}`}>valid · list v{status.version}</span>;
-  if (status.state === 'revoked') return <span className="badge bad" title={`bit ${status.bit} set in status list v${status.version}`}>REVOKED · list v{status.version}</span>;
-  if (status.state === 'expired') return <span className="badge warn">expired</span>;
-  return <span className="badge neutral" title={status.reason}>status unknown</span>;
-}
+export { claimValue } from './CredentialCard';
 
 export function useCredentials() {
   const wallet = useWallet();
@@ -35,42 +30,34 @@ export function useCredentials() {
   return { creds, statuses };
 }
 
-export function claimValue(cred: StoredCredential, path: string): string | undefined {
-  let node: unknown = cred.claims;
-  for (const key of path.split('.')) {
-    if (!node || typeof node !== 'object') return undefined;
-    node = (node as Record<string, unknown>)[key];
-  }
-  return node === undefined ? undefined : String(node);
-}
-
 export function Credentials() {
   const { creds, statuses } = useCredentials();
+  const justAccepted = sessionStorage.getItem('dcv:just-accepted');
+  useEffect(() => {
+    if (justAccepted) sessionStorage.removeItem('dcv:just-accepted');
+  }, [justAccepted]);
+
   return (
-    <section>
+    <div className="page-narrow stack-lg">
       <div className="row-between">
-        <h2>My credentials</h2>
-        <a href="#/backup" className="ghost-link">Backup &amp; restore</a>
+        <h2 className="title">Your credentials</h2>
+        <a href="#/backup">Back up or restore</a>
       </div>
-      {creds.length === 0 && (
-        <div className="card">
-          <p className="muted">Your vault is empty. Ask an issuer for a credential - in the demo, click <strong>Issue</strong> in the university console and then <strong>Open in wallet</strong>.</p>
+      {creds.length === 0 ? (
+        <div className="empty prose">
+          <p className="lede">Nothing here yet.</p>
+          <p className="ink-2" style={{ marginTop: 8 }}>
+            A credential arrives as an offer link from an issuer. In the demo, open the university console, fill in the form and choose <strong>Create offer</strong>, then <strong>Open in wallet</strong>.
+          </p>
+        </div>
+      ) : (
+        <div className="cards">
+          {creds.map((c) => (
+            <CredentialCard key={c.id} cred={c} status={statuses[c.id] ?? null} deal={justAccepted === c.id} onOpen={() => navigate(`/credential/${encodeURIComponent(c.id)}`)} />
+          ))}
         </div>
       )}
-      <div className="cards">
-        {creds.map((c) => (
-          <article key={c.id} className="cred" onClick={() => navigate(`/credential/${encodeURIComponent(c.id)}`)}>
-            <div className="row-between">
-              <span className="type">{c.type.filter((t) => t !== 'VerifiableCredential').join(', ')}</span>
-              <StatusBadge status={statuses[c.id] ?? null} />
-            </div>
-            <h3>{claimValue(c, 'credentialSubject.degree.name') ?? '(hidden)'}</h3>
-            <p className="muted">issued by <strong>{c.issuerName || c.issuerDid}</strong></p>
-            <p className="muted small">bound to pairwise DID <code>{c.holderDid.slice(0, 26)}…</code></p>
-          </article>
-        ))}
-      </div>
-    </section>
+    </div>
   );
 }
 
@@ -84,38 +71,51 @@ export function CredentialDetail({ id }: { id: string }) {
       if (c) credentialStatus(c).then(setStatus);
     });
   }, [wallet, id]);
-  if (!cred) return <section className="card"><p className="muted">Loading…</p></section>;
+  if (!cred) return <div className="page-narrow"><p className="quiet">Opening…</p></div>;
   const validFrom = (cred.claims as { validFrom?: string }).validFrom;
   const validUntil = (cred.claims as { validUntil?: string }).validUntil;
   return (
-    <section className="card">
-      <a href="#/credentials" className="ghost-link">← back</a>
-      <div className="row-between">
-        <h2>{cred.type.filter((t) => t !== 'VerifiableCredential').join(', ')}</h2>
-        <StatusBadge status={status} />
-      </div>
-      <table>
-        <tbody>
-          <tr><td className="muted">Issuer</td><td>{cred.issuerName} <code>{cred.issuerDid}</code></td></tr>
-          <tr><td className="muted">Bound to</td><td><code>{cred.holderDid}</code> <span className="muted small">(pairwise DID for this issuer)</span></td></tr>
-          <tr><td className="muted">Valid</td><td>{validFrom} → {validUntil}</td></tr>
-          {cred.credentialStatus && <tr><td className="muted">Status entry</td><td>bit {cred.credentialStatus.statusListIndex} of <code>{cred.credentialStatus.statusListCredential}</code></td></tr>}
-        </tbody>
-      </table>
-      <h3>Claims <span className="muted">(each chip can be disclosed on its own)</span></h3>
-      <div className="chips">
-        {DISCLOSABLE_CLAIMS.map((path) => (
-          <div key={path} className="chip">
-            <span className="muted">{CLAIM_LABELS[path as DisclosableClaim]}</span>
-            <strong>{claimValue(cred, path) ?? '—'}</strong>
-          </div>
-        ))}
-      </div>
-      <details>
-        <summary className="muted">Raw SD-JWT ({cred.sdJwt.length} chars)</summary>
-        <pre>{cred.sdJwt}</pre>
-      </details>
-      <button className="danger ghost" onClick={async () => { if (confirm('Delete this credential from the vault?')) { await wallet.removeCredential(cred.id); navigate('/credentials'); } }}>Delete</button>
-    </section>
+    <div className="page-narrow stack-lg">
+      <a href="#/credentials">Back to your credentials</a>
+      <CredentialCard cred={cred} status={status} />
+      <section className="section">
+        <dl className="kv">
+          <dt>Issued by</dt>
+          <dd>{cred.issuerName}<br /><span className="id">{cred.issuerDid}</span></dd>
+          <dt>Bound to</dt>
+          <dd><span className="id">{cred.holderDid}</span><br /><span className="quiet">your pairwise identity for this issuer; no other issuer sees it</span></dd>
+          <dt>Valid</dt>
+          <dd>{validFrom?.slice(0, 10)} to {validUntil?.slice(0, 10)}</dd>
+          {cred.credentialStatus && (
+            <>
+              <dt>Revocation</dt>
+              <dd><StatusMark status={status} /><br /><span className="quiet">bit {cred.credentialStatus.statusListIndex} of the list at </span><span className="id">{cred.credentialStatus.statusListCredential}</span></dd>
+            </>
+          )}
+        </dl>
+      </section>
+      <section className="section">
+        <h2 className="subtitle">Claims you can share one by one</h2>
+        <div className="claims" style={{ marginTop: 10 }}>
+          {DISCLOSABLE_CLAIMS.map((path) => (
+            <div key={path}>
+              <span className="label">{CLAIM_LABELS[path as DisclosableClaim]}</span>
+              <strong>{claimValue(cred, path) ?? '—'}</strong>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="section">
+        <details>
+          <summary>Signed token as received ({cred.sdJwt.length} characters)</summary>
+          <pre className="raw" style={{ marginTop: 10 }}>{cred.sdJwt}</pre>
+        </details>
+      </section>
+      <section className="section">
+        <button className="button destructive" onClick={async () => { if (confirm('Remove this credential from your wallet? You would need a new offer from the issuer to get it back.')) { await wallet.removeCredential(cred.id); navigate('/credentials'); } }}>
+          Remove from wallet
+        </button>
+      </section>
+    </div>
   );
 }

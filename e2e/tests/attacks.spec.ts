@@ -9,7 +9,7 @@ test('attack lab: each button turns exactly one row red', async ({ browser, requ
   await onboardWallet(wallet);
   await acceptInWallet(wallet, await issueViaApi(request));
   await presentInWallet(wallet, await createRequestInVerifier(verifier));
-  await expect(verifier.getByText('ACCEPTED · 8/8 checks')).toBeVisible({ timeout: 20_000 });
+  await expect(verifier.getByRole('heading', { name: 'Credential accepted' })).toBeVisible({ timeout: 20_000 });
 
   const expected: Array<[string, string]> = [
     ['Tamper a disclosure', 'DISCLOSURE_DIGEST_MISMATCH'],
@@ -21,11 +21,11 @@ test('attack lab: each button turns exactly one row red', async ({ browser, requ
     await verifier.locator('button.attack', { hasText: label }).click();
     const after = verifier.locator('.report', { hasText: `After "${label}"` });
     await expect(after).toBeVisible();
-    await expect(after.locator('.checks li.bad')).toHaveCount(1);
-    await expect(after.locator('.checks li.bad')).toContainText(code);
-    await expect(after.locator('.checks li.ok')).toHaveCount(7);
+    await expect(after.locator('.checklist li.bad')).toHaveCount(1);
+    await expect(after.locator('.checklist li.bad')).toContainText(code);
+    await expect(after.locator('.checklist li.ok')).toHaveCount(7);
   }
 
   // the real report is untouched
-  await expect(verifier.locator('.report', { hasText: 'Verification report' }).locator('.checks li.ok')).toHaveCount(8);
+  await expect(verifier.locator('.report', { hasText: 'Credential accepted' }).locator('.checklist li.ok')).toHaveCount(8);
 });

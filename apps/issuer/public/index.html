@@ -3,108 +3,138 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Issuer Console · Anvil State University</title>
+  <title>Registrar, Anvil State University</title>
+  <link rel="stylesheet" href="/design/theme.css" />
   <link rel="stylesheet" href="/console.css" />
 </head>
 <body>
-  <header>
-    <div>
-      <h1>Anvil State University</h1>
-      <p class="sub">Issuer console · <code id="issuer-did">resolving DID…</code></p>
+  <header class="page masthead">
+    <div class="brand">
+      <img class="seal" src="/design/seal.svg" alt="" width="72" height="72" />
+      <div class="wordmark">
+        Anvil State University
+        <small>Office of the Registrar. Issuer <span class="id" id="issuer-did">resolving…</span></small>
+      </div>
     </div>
-    <nav>
-      <button class="tab active" data-tab="issuer">Issuer</button>
-      <button class="tab" data-tab="governance">Governance</button>
-      <button id="reset-demo" class="danger" title="Truncate the ledger and republish status list v1">Reset demo</button>
+    <nav aria-label="registrar">
+      <button class="tab active" data-tab="issuer" type="button">Issue</button>
+      <button class="tab" data-tab="governance" type="button">Trust registry</button>
+      <button id="reset-demo" class="button subtle" type="button">Reset the register</button>
     </nav>
   </header>
 
-  <main>
+  <main class="page">
     <section id="tab-issuer" class="tab-panel active">
-      <div class="grid">
-        <article class="card">
-          <h2>Identity</h2>
-          <dl id="identity">
-            <dt>DID</dt><dd><code id="id-did">…</code></dd>
-            <dt>Address</dt><dd><code id="id-address">…</code></dd>
-            <dt>Trusted (on-chain)</dt><dd id="id-trusted">…</dd>
-            <dt>Status list</dt><dd id="id-status">…</dd>
-            <dt>Blob store</dt><dd id="id-blob">…</dd>
-          </dl>
-        </article>
-
-        <article class="card">
-          <h2>Issue a degree credential</h2>
-          <form id="issue-form">
-            <label>Full name <input name="name" value="Alice Example" required /></label>
-            <label>Date of birth <input name="birthDate" value="2003-04-12" pattern="\d{4}-\d{2}-\d{2}" required /></label>
-            <label>Student ID <input name="studentId" value="ASU-2026-00042" required /></label>
-            <label>Degree <input name="degreeName" value="Bachelor of Science in Computer Science" required /></label>
-            <label>Grade <input name="grade" value="First Class Honours" required /></label>
-            <label>Awarded on <input name="awardedOn" value="2026-06-30" pattern="\d{4}-\d{2}-\d{2}" required /></label>
-            <button type="submit">Issue → create offer</button>
+      <div class="cols-2">
+        <div class="stack-lg">
+          <div>
+            <h2 class="title">Issue a degree credential</h2>
+            <p class="quiet" style="margin-top:4px">Creates a single-use offer. The student's wallet claims it with its own key; the register keeps only a hash of that key.</p>
+          </div>
+          <form id="issue-form" class="form-grid">
+            <label class="field span-2"><span>Full name</span><input name="name" value="Alice Example" required /></label>
+            <label class="field"><span>Date of birth</span><input name="birthDate" value="2003-04-12" pattern="\d{4}-\d{2}-\d{2}" required /></label>
+            <label class="field"><span>Student ID</span><input name="studentId" value="ASU-2026-00042" required /></label>
+            <label class="field span-2"><span>Degree</span><input name="degreeName" value="Bachelor of Science in Computer Science" required /></label>
+            <label class="field"><span>Grade</span><input name="grade" value="First Class Honours" required /></label>
+            <label class="field"><span>Awarded on</span><input name="awardedOn" value="2026-06-30" pattern="\d{4}-\d{2}-\d{2}" required /></label>
+            <div class="span-2"><button class="button" type="submit">Create offer</button></div>
           </form>
           <div id="offer" class="offer hidden">
-            <h3>Offer ready</h3>
-            <p>Open this in Alice's wallet:</p>
-            <p><a id="offer-link" href="#" target="_blank" rel="noopener">Open in wallet</a> · <button id="copy-link" type="button">Copy link</button></p>
-            <p class="muted">Offer URL: <code id="offer-url"></code></p>
+            <h3 class="subtitle">Offer ready for the student</h3>
+            <p class="ink-2">Hand over the link; the wallet does the rest.</p>
+            <p class="row">
+              <a id="offer-link" class="button secondary" href="#" target="_blank" rel="noopener">Open in wallet</a>
+              <button id="copy-link" class="button subtle" type="button">Copy link</button>
+            </p>
+            <p class="id" id="offer-url"></p>
           </div>
-        </article>
+        </div>
+
+        <div class="stack-lg">
+          <div>
+            <h2 class="title">This office on the chain</h2>
+            <p class="quiet" style="margin-top:4px">What any verifier can read without asking us.</p>
+          </div>
+          <dl class="kv">
+            <dt>Issuer</dt><dd><span class="id" id="id-did">…</span></dd>
+            <dt>Address</dt><dd><span class="id" id="id-address">…</span></dd>
+            <dt>Trusted for</dt><dd id="id-trusted">…</dd>
+            <dt>Revocation list</dt><dd id="id-status">…</dd>
+            <dt>Stored on</dt><dd id="id-blob">…</dd>
+          </dl>
+        </div>
       </div>
 
-      <article class="card">
-        <h2>Issued credentials <span class="muted">(ledger, subject redacted)</span></h2>
-        <table id="credentials">
-          <thead><tr><th>ID</th><th>Type</th><th>Index</th><th>Holder DID (sha256)</th><th>Status</th><th></th></tr></thead>
-          <tbody></tbody>
-        </table>
-        <div id="preview" class="hidden">
-          <h3>What I signed</h3>
-          <pre id="preview-json"></pre>
+      <section class="section" style="margin-top:12px">
+        <div class="row-between">
+          <h2 class="title">Register of issued credentials</h2>
+          <span class="quiet">subject fields never leave this office</span>
         </div>
-      </article>
+        <div class="ledger-wrap" style="margin-top:12px">
+          <table class="ledger" id="credentials">
+            <thead><tr><th>Credential</th><th>Type</th><th class="num">List index</th><th>Holder key (hash)</th><th>Status</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="preview" class="hidden" style="margin-top:16px">
+          <h3 class="subtitle">What was signed</h3>
+          <p class="quiet">Salted digests stand in for the claims. Names never enter the signature.</p>
+          <pre id="preview-json" class="raw"></pre>
+        </div>
+      </section>
     </section>
 
     <section id="tab-governance" class="tab-panel">
-      <div class="grid">
-        <article class="card">
-          <h2>Trust registry</h2>
-          <table id="issuers">
-            <thead><tr><th>Issuer</th><th>Active</th><th>UniversityDegreeCredential</th><th></th></tr></thead>
-            <tbody></tbody>
-          </table>
-          <form id="type-form" class="inline">
-            <input name="credentialType" value="EmployeeIdCredential" />
-            <button type="submit" data-action="allow">Allow type</button>
-            <button type="button" data-action="disallow">Disallow type</button>
+      <div class="cols-2 wide-left">
+        <div class="stack-lg">
+          <div>
+            <h2 class="title">Trust registry</h2>
+            <p class="quiet" style="margin-top:4px">Governance decides which issuers are trusted for which credential types. Held by the admin key.</p>
+          </div>
+          <div class="ledger-wrap">
+            <table class="ledger" id="issuers">
+              <thead><tr><th>Issuer</th><th>Active</th><th>Degree credentials</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <form id="type-form" class="row">
+            <input class="input" name="credentialType" value="EmployeeIdCredential" style="max-width:260px" />
+            <button class="button secondary small" type="submit" data-action="allow">Allow this type</button>
+            <button class="button secondary small" type="button" data-action="disallow">Disallow it</button>
           </form>
-          <form id="register-form" class="inline">
-            <input name="address" placeholder="0x… new issuer address" />
-            <input name="name" placeholder="Issuer name" />
-            <button type="submit">Register issuer</button>
+          <form id="register-form" class="row">
+            <input class="input" name="address" placeholder="0x… address of a new issuer" style="max-width:300px" />
+            <input class="input" name="name" placeholder="Its name" style="max-width:200px" />
+            <button class="button secondary small" type="submit">Register issuer</button>
           </form>
-        </article>
-
-        <article class="card">
-          <h2>Privacy scan</h2>
-          <p class="muted">Greps every Anvil block, log and IPFS pin for the real PII in this ledger.</p>
-          <button id="privacy-scan">Run privacy scan</button>
-          <pre id="privacy-result" class="hidden"></pre>
-        </article>
+        </div>
+        <div class="stack-lg">
+          <div>
+            <h2 class="title">Privacy scan</h2>
+            <p class="quiet" style="margin-top:4px">Takes the real names, dates and IDs from this register and searches every block, log and IPFS pin for them. The answer should be zero.</p>
+          </div>
+          <button id="privacy-scan" class="button" type="button">Run the privacy scan</button>
+          <pre id="privacy-result" class="raw hidden"></pre>
+        </div>
       </div>
 
-      <article class="card">
-        <h2>On-chain events <span class="muted">(polled every 2 s)</span></h2>
-        <table id="events">
-          <thead><tr><th>Block</th><th>Contract</th><th>Event</th><th>Args</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </article>
+      <section class="section" style="margin-top:12px">
+        <div class="row-between">
+          <h2 class="title">On the chain</h2>
+          <span class="quiet">every event since block 0, refreshed every 2 s</span>
+        </div>
+        <div class="ledger-wrap" style="margin-top:12px">
+          <table class="ledger" id="events">
+            <thead><tr><th class="num">Block</th><th>Contract</th><th>Event</th><th>Details</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
     </section>
   </main>
 
-  <footer><span id="toast"></span></footer>
+  <div id="toast" role="status" aria-live="polite"></div>
   <script src="/console.js"></script>
 </body>
 </html>

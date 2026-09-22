@@ -1,16 +1,4 @@
-import { useState } from 'react';
 import type { Check, VerificationReport } from '@dcv/core/verifier/report';
-
-function Evidence({ check }: { check: Check }) {
-  const [open, setOpen] = useState(false);
-  if (!check.evidence) return null;
-  return (
-    <div className="evidence">
-      <button className="ghost small" onClick={() => setOpen((o) => !o)}>{open ? 'Hide evidence' : 'Evidence'}</button>
-      {open && <pre>{JSON.stringify(check.evidence, null, 2)}</pre>}
-    </div>
-  );
-}
 
 function flatten(obj: unknown, prefix = ''): Array<[string, string]> {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return [[prefix, JSON.stringify(obj)]];
@@ -24,54 +12,87 @@ function flatten(obj: unknown, prefix = ''): Array<[string, string]> {
   return out;
 }
 
-export function Report({ report, title }: { report: VerificationReport; title?: string }) {
+const NAMES: Record<string, string> = {
+  'credentialSubject.degree.type': 'Degree type',
+  'credentialSubject.degree.name': 'Degree',
+  'credentialSubject.degree.grade': 'Grade',
+  'credentialSubject.degree.awardedOn': 'Awarded on',
+  'credentialSubject.name': 'Full name',
+  'credentialSubject.birthDate': 'Date of birth',
+  'credentialSubject.studentId': 'Student ID',
+};
+
+function Row({ check, index, animate }: { check: Check; index: number; animate: boolean }) {
+  return (
+    <li className={check.ok ? 'ok' : 'bad'} style={animate ? ({ '--i': index } as React.CSSProperties) : undefined}>
+      <span className="tick" aria-hidden="true">{check.ok ? '✓' : '✗'}</span>
+      <div>
+        <div className="what">
+          {check.label}
+          {check.code && <span className="code">{check.code}</span>}
+        </div>
+        <div className="detail">{check.detail}</div>
+        {check.evidence && (
+          <details>
+            <summary>Evidence</summary>
+            <pre className="raw" style={{ marginTop: 6 }}>{JSON.stringify(check.evidence, null, 2)}</pre>
+          </details>
+        )}
+      </div>
+    </li>
+  );
+}
+
+export function Report({ report, title, animate = false }: { report: VerificationReport; title?: string; animate?: boolean }) {
   const green = report.checks.filter((c) => c.ok).length;
   const subject = (report.disclosed['credentialSubject'] as Record<string, unknown> | undefined) ?? {};
   const seen = flatten(subject, 'credentialSubject').filter(([k]) => k !== 'credentialSubject.id');
+  const hidden = report.digestsUndisclosed.length;
   return (
-    <section className={`card report ${report.ok ? 'ok' : 'bad'}`}>
-      <div className="report-head">
-        <h2>{title ?? 'Verification report'}</h2>
-        <span className={`badge ${report.ok ? 'ok' : 'bad'}`}>{report.ok ? 'ACCEPTED' : 'REJECTED'} · {green}/8 checks</span>
+    <section className="report stack-lg" aria-label={title ?? 'Verification report'}>
+      <div className={`verdict${report.ok ? '' : ' bad'}`}>
+        <span className={`stamp ${report.ok ? 'ok' : 'bad'}`}>{report.ok ? 'Accepted' : 'Rejected'}</span>
+        <div>
+          <h2 className="display word">{title ?? (report.ok ? 'Credential accepted' : 'Credential rejected')}</h2>
+          <p className="count">{green} of {report.checks.length} checks passed{report.dryRun ? ' in this dry run' : ''}</p>
+        </div>
       </div>
-      <div className="badges">
-        <span className={`badge ${report.issuerContacted ? 'bad' : 'ok'}`}>{report.issuerContacted ? 'issuer WAS contacted' : '0 requests to the issuer'}</span>
-        <span className="badge neutral">chain reads: {report.chainReads}</span>
-        <span className="badge neutral">other fetches: {report.outboundUrls.length}</span>
-        {report.dryRun && <span className="badge warn">dry run</span>}
+      <div className="facts">
+        <span className={`mark ${report.issuerContacted ? 'bad' : 'ok'}`}>{report.issuerContacted ? 'the issuer was contacted' : '0 requests to the issuer'}</span>
+        <span className="mark neutral">{report.chainReads} chain reads</span>
+        <span className="mark neutral">{report.outboundUrls.length} other {report.outboundUrls.length === 1 ? 'fetch' : 'fetches'}</span>
       </div>
-      <ol className="checks">
-        {report.checks.map((c) => (
-          <li key={c.name} className={c.ok ? 'ok' : 'bad'}>
-            <span className="mark">{c.ok ? '✓' : '✗'}</span>
-            <div>
-              <div className="label">
-                {c.label} {c.code && <code className="code">{c.code}</code>}
-              </div>
-              <div className="detail">{c.detail}</div>
-              <Evidence check={c} />
-            </div>
-          </li>
-        ))}
+      <ol className={`checklist${animate ? ' fill-in' : ''}`}>
+        {report.checks.map((c, i) => <Row key={c.name} check={c} index={i} animate={animate} />)}
       </ol>
-      <h3>What the verifier saw</h3>
-      <table>
-        <tbody>
-          <tr><td className="muted">Issuer</td><td><code>{report.issuerDid}</code></td></tr>
-          <tr><td className="muted">Holder (pairwise DID)</td><td><code>{report.holderDid}</code></td></tr>
-          <tr><td className="muted">Type</td><td>{(report.disclosed['type'] as string[] | undefined)?.join(', ')}</td></tr>
+      <div className="stack seen">
+        <h3 className="subtitle">What this desk received</h3>
+        <dl className="kv">
+          <dt>Issuer</dt>
+          <dd><span className="id">{report.issuerDid}</span></dd>
+          <dt>Holder</dt>
+          <dd><span className="id">{report.holderDid}</span><br /><span className="quiet">a pairwise identity; other verifiers see a different one</span></dd>
+          <dt>Type</dt>
+          <dd>{(report.disclosed['type'] as string[] | undefined)?.filter((t) => t !== 'VerifiableCredential').map((t) => t.replace(/([a-z])([A-Z])/g, '$1 $2')).join(', ')}</dd>
           {seen.map(([k, v]) => (
-            <tr key={k}><td className="muted">{k}</td><td><strong>{v}</strong></td></tr>
+            <div key={k} style={{ display: 'contents' }}>
+              <dt>{NAMES[k] ?? k}</dt>
+              <dd><strong>{v}</strong></dd>
+            </div>
           ))}
-          <tr>
-            <td className="muted">Not disclosed</td>
-            <td>{report.digestsUndisclosed.length} claim(s) remain hidden: {report.digestsUndisclosed.map((d) => <code key={d} className="digest">{d.slice(0, 10)}…</code>)}</td>
-          </tr>
+          <dt>Kept sealed</dt>
+          <dd>
+            {hidden === 0 ? 'nothing' : Array.from({ length: hidden }, (_, i) => <span key={i} className="sealed" title="a salted digest the holder chose not to open" />)}
+            {hidden > 0 && <div className="quiet" style={{ marginTop: 4 }}>{hidden} {hidden === 1 ? 'claim stays' : 'claims stay'} as salted digests this desk cannot reverse.</div>}
+          </dd>
           {report.outboundUrls.length > 0 && (
-            <tr><td className="muted">Fetched</td><td>{report.outboundUrls.map((u) => <code key={u}>{u}</code>)}</td></tr>
+            <>
+              <dt>Fetched</dt>
+              <dd>{report.outboundUrls.map((u) => <div key={u} className="id">{u}</div>)}</dd>
+            </>
           )}
-        </tbody>
-      </table>
+        </dl>
+      </div>
     </section>
   );
 }

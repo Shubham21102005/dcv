@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Seal of Anvil State University">
+  <defs>
+    <path id="ring" d="M60 60 m-44 0 a44 44 0 1 1 88 0 a44 44 0 1 1 -88 0"/>
+  </defs>
+  <g fill="none" stroke="#7A1F33">
+    <circle cx="60" cy="60" r="56" stroke-width="2.2"/>
+    <circle cx="60" cy="60" r="52" stroke-width="0.8"/>
+    <circle cx="60" cy="60" r="35" stroke-width="0.8"/>
+    <circle cx="60" cy="60" r="33" stroke-width="1.6"/>
+  </g>
+  <text font-family="'Bricolage Grotesque', 'Segoe UI', sans-serif" font-size="8.6" font-weight="700" letter-spacing="1.9" fill="#7A1F33">
+    <textPath href="#ring" startOffset="2%">ANVIL STATE UNIVERSITY</textPath>
+  </text>
+  <text font-family="'Bricolage Grotesque', 'Segoe UI', sans-serif" font-size="8.6" font-weight="700" letter-spacing="1.9" fill="#7A1F33">
+    <textPath href="#ring" startOffset="58%">REGISTRAR · MMXXVI</textPath>
+  </text>
+  <!-- the anvil -->
+  <g fill="#7A1F33">
+    <path d="M40 50h40c3 0 4 2 4 4v2c0 2-2 3-4 3H66c-1 0-2 1-2 2v8h5c1.5 0 2 1 2 2v2H49v-2c0-1 .5-2 2-2h5v-8c0-1-1-2-2-2H42c-4 0-7-3-7-7v-1c0-1 1-1 2-1h3z"/>
+    <rect x="44" y="76" width="32" height="4" rx="1"/>
+  </g>
+</svg>

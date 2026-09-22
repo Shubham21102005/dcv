@@ -30,11 +30,11 @@ export async function wipeWallet(page: Page): Promise<void> {
 /** Create identity in the wallet; returns the 12-word mnemonic shown once. */
 export async function onboardWallet(page: Page, passphrase = PASSPHRASE): Promise<string> {
   await page.goto(`${WALLET}/#/`);
-  await expect(page.getByRole('heading', { name: 'Create your identity' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Create your wallet' })).toBeVisible();
   const inputs = page.locator('input[type=password]');
   await inputs.nth(0).fill(passphrase);
   await inputs.nth(1).fill(passphrase);
-  await page.getByRole('button', { name: 'Create identity' }).click();
+  await page.getByRole('button', { name: 'Create wallet' }).click();
   await expect(page.getByRole('heading', { name: 'Write these 12 words down' })).toBeVisible({ timeout: 30_000 });
   const words = await page.locator('.mnemonic li').allTextContents();
   const mnemonic = words.map((w) => w.replace(/^\d+/, '').trim()).join(' ');
@@ -42,7 +42,7 @@ export async function onboardWallet(page: Page, passphrase = PASSPHRASE): Promis
   await page.getByRole('checkbox').check();
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Open my vault' }).click();
-  await expect(page.getByRole('heading', { name: 'My credentials' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your credentials' })).toBeVisible();
   return mnemonic;
 }
 
@@ -50,7 +50,7 @@ export async function onboardWallet(page: Page, passphrase = PASSPHRASE): Promis
 export async function issueViaConsole(page: Page): Promise<string> {
   await page.goto(ISSUER);
   await expect(page.locator('#id-did')).toContainText('did:ethr:anvil:');
-  await page.getByRole('button', { name: 'Issue → create offer' }).click();
+  await page.getByRole('button', { name: 'Create offer' }).click();
   const link = page.locator('#offer-link');
   await expect(link).toBeVisible();
   return (await link.getAttribute('href'))!;
@@ -69,7 +69,7 @@ export async function acceptInWallet(page: Page, walletLink: string): Promise<vo
   await page.getByRole('button', { name: 'Accept credential' }).click();
   await expect(page.getByText('Encrypted and stored')).toBeVisible({ timeout: 30_000 });
   await page.getByRole('button', { name: 'Open my vault' }).click();
-  await expect(page.locator('.cred')).toHaveCount(1);
+  await expect(page.locator('.cred-card')).toHaveCount(1);
 }
 
 /** Create a request in the verifier web UI (Degree ticked by default) and return the wallet link. */
@@ -84,6 +84,6 @@ export async function createRequestInVerifier(page: Page): Promise<string> {
 export async function presentInWallet(page: Page, requestLink: string): Promise<void> {
   await page.goto(requestLink);
   await expect(page.getByRole('heading', { name: /asks for/ })).toBeVisible();
-  await page.getByRole('button', { name: /^Present \d+ claim/ }).click();
-  await expect(page.getByRole('heading', { name: /Accepted by/ })).toBeVisible({ timeout: 30_000 });
+  await page.getByRole('button', { name: /^Share \d+ claim/ }).click();
+  await expect(page.getByRole('heading', { name: /accepted your credential/ })).toBeVisible({ timeout: 30_000 });
 }

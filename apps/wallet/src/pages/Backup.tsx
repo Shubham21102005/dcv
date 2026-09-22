@@ -18,7 +18,7 @@ export function Backup() {
       a.download = 'vault.dcv.json';
       a.click();
       URL.revokeObjectURL(a.href);
-      setMsg(`Exported ${file.records.length} encrypted record(s) + wrapped seed. Ciphertext only - safe to store anywhere.`);
+      setMsg(`Saved vault.dcv.json with ${file.records.length} encrypted record${file.records.length === 1 ? '' : 's'} and the wrapped seed. It is ciphertext only.`);
     } catch (err) {
       setError((err as Error).message);
     }
@@ -27,7 +27,7 @@ export function Backup() {
   const importFile = async (f: File) => {
     try {
       await wallet.importFile(await f.text());
-      setMsg('Vault file imported. Unlock it with the passphrase used when it was exported.');
+      setMsg('Vault file loaded. Unlock it with the passphrase it was saved with.');
       navigate('/');
     } catch (err) {
       setError((err as Error).message);
@@ -35,24 +35,30 @@ export function Backup() {
   };
 
   return (
-    <section className="card narrow">
-      <a href="#/credentials" className="ghost-link">← back</a>
-      <h2>Backup &amp; restore</h2>
-      <h3>Encrypted file</h3>
-      <p className="muted">The file holds the argon2id-wrapped seed and AES-GCM records; nothing readable without the passphrase.</p>
-      <p>
-        <button onClick={exportFile}>Export vault.dcv.json</button>{' '}
-        <button className="ghost" onClick={() => fileInput.current?.click()}>Import a vault file</button>
-        <input ref={fileInput} type="file" accept="application/json" hidden onChange={(e) => e.target.files?.[0] && importFile(e.target.files[0])} />
-      </p>
-      <h3>IPFS backup</h3>
-      <p className="muted">AES-256-GCM bundle pinned on the local IPFS node; its CID is encrypted and written to <code>VaultPointer</code> from a pseudonymous, seed-derived address. Nothing on chain or IPFS links to you.</p>
-      <BackupIpfs />
-      <h3>Restore on a new device</h3>
-      <p className="muted">Only the 12 words are needed: <a href="#/restore">restore from mnemonic</a>.</p>
-      {msg && <p className="ok-text">{msg}</p>}
-      {error && <p className="error">{error}</p>}
-    </section>
+    <div className="page-narrow stack-lg">
+      <a href="#/credentials">Back to your credentials</a>
+      <h2 className="display display-md">Backup and restore</h2>
+      <section className="section stack">
+        <h3 className="subtitle">Encrypted file</h3>
+        <p className="prose ink-2">The file holds your argon2id-wrapped seed and the AES-GCM records. Without the passphrase it is noise.</p>
+        <div className="row">
+          <button className="button" onClick={exportFile}>Save vault file</button>
+          <button className="button secondary" onClick={() => fileInput.current?.click()}>Load a vault file</button>
+          <input ref={fileInput} type="file" accept="application/json" hidden onChange={(e) => e.target.files?.[0] && importFile(e.target.files[0])} />
+        </div>
+      </section>
+      <section className="section stack">
+        <h3 className="subtitle">Copy on IPFS</h3>
+        <p className="prose ink-2">An AES-256-GCM bundle is pinned on the local IPFS node. Its address is encrypted and written to the VaultPointer contract from a pseudonymous account derived from your seed, so nothing on chain or IPFS points back at you.</p>
+        <BackupIpfs />
+      </section>
+      <section className="section stack">
+        <h3 className="subtitle">New device</h3>
+        <p className="prose ink-2">Only the 12 words are needed: <a href="#/restore">restore the wallet from them</a>, then fetch the copy on IPFS.</p>
+      </section>
+      {msg && <p className="notice ok">{msg}</p>}
+      {error && <p className="notice error">{error}</p>}
+    </div>
   );
 }
 
@@ -70,10 +76,10 @@ function BackupIpfs() {
       const deps = await ipfsBackupDeps();
       if (kind === 'backup') {
         const r = await backupToIpfs(wallet, deps);
-        setOut(`Backed up ${r.records} record(s) as ${r.bytes} bytes of ciphertext → ${r.cid}. Encrypted pointer written from ${r.pointerAddress} (tx ${r.txHash.slice(0, 14)}…). Try: ipfs cat ${r.cid} --length 80`);
+        setOut(`Backed up ${r.records} record${r.records === 1 ? '' : 's'} as ${r.bytes} bytes of ciphertext at ${r.cid}. The encrypted pointer was written from ${r.pointerAddress}. Try it yourself: ipfs cat ${r.cid} --length 80`);
       } else {
         const r = await restoreFromIpfs(wallet, deps);
-        setOut(`Restored ${r.records} record(s) from ${r.cid}.`);
+        setOut(`Restored ${r.records} record${r.records === 1 ? '' : 's'} from ${r.cid}.`);
       }
     } catch (e) {
       setErr((e as Error).message);
@@ -83,13 +89,13 @@ function BackupIpfs() {
   };
 
   return (
-    <div>
-      <p>
-        <button onClick={() => run('backup')} disabled={busy !== null}>{busy === 'backup' ? 'Backing up…' : 'Backup to IPFS'}</button>{' '}
-        <button className="ghost" onClick={() => run('restore')} disabled={busy !== null}>{busy === 'restore' ? 'Restoring…' : 'Restore from IPFS pointer'}</button>
-      </p>
-      {out && <p className="ok-text small">{out}</p>}
-      {err && <p className="error">{err}</p>}
+    <div className="stack">
+      <div className="row">
+        <button className="button" onClick={() => run('backup')} disabled={busy !== null}>{busy === 'backup' ? 'Backing up' : 'Back up to IPFS'}</button>
+        <button className="button secondary" onClick={() => run('restore')} disabled={busy !== null}>{busy === 'restore' ? 'Restoring' : 'Restore from IPFS'}</button>
+      </div>
+      {out && <p className="notice ok" style={{ overflowWrap: 'anywhere' }}>{out}</p>}
+      {err && <p className="notice error">{err}</p>}
     </div>
   );
 }

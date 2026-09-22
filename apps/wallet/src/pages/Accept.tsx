@@ -1,3 +1,4 @@
+import sealUrl from '@dcv/design/seal.svg';
 import { useEffect, useState } from 'react';
 import { navigate, useWallet } from '../state/app';
 import type { OfferDetails, StoredCredential } from '../state/wallet';
@@ -16,7 +17,7 @@ export function Accept({ offerUrl }: { offerUrl: string }) {
       .fetchOffer(offerUrl)
       .then(async (o) => {
         setOffer(o);
-        // the pairwise DID for this issuer is derived automatically - no DID to paste anywhere
+        // the pairwise identity for this issuer is derived automatically - nothing to paste anywhere
         setPairwiseDid((await wallet.holderAccount(o.issuerDid)).did);
       })
       .catch((err) => setError((err as Error).message));
@@ -28,11 +29,13 @@ export function Accept({ offerUrl }: { offerUrl: string }) {
     setError('');
     const log = (s: string) => setSteps((prev) => [...prev, s]);
     try {
-      log(`Derived pairwise DID for ${offer.issuerName}`);
-      log('Signed proof of possession over the offer nonce');
+      log(`Derived your pairwise identity for ${offer.issuerName}`);
+      log('Proved you hold its key by signing the offer nonce');
       const cred = await wallet.claimOffer(offer);
-      log('Received vc+sd-jwt · issuer signature recovers to iss · schema OK · issuer trusted on chain');
-      log('Encrypted and stored (AES-256-GCM)');
+      log('Checked the signature against the issuer address on chain');
+      log('Checked the issuer is trusted for this credential type');
+      log('Encrypted and stored');
+      sessionStorage.setItem('dcv:just-accepted', cred.id);
       setDone(cred);
     } catch (err) {
       setError((err as Error).message);
@@ -41,27 +44,50 @@ export function Accept({ offerUrl }: { offerUrl: string }) {
     }
   };
 
-  if (error && !offer) return <section className="card narrow"><h2>Offer</h2><p className="error">{error}</p></section>;
-  if (!offer) return <section className="card narrow"><p className="muted">Fetching offer…</p></section>;
+  if (error && !offer) {
+    return (
+      <div className="page-narrow stack-lg">
+        <h2 className="display display-md">This offer cannot be opened</h2>
+        <p className="notice error">{error}</p>
+        <p className="quiet">Ask the issuer for a new link; offers are single-use and expire.</p>
+      </div>
+    );
+  }
+  if (!offer) return <div className="page-narrow"><p className="quiet">Reading the offer…</p></div>;
 
   return (
-    <section className="card narrow">
-      <h2>Credential offer</h2>
-      <table>
-        <tbody>
-          <tr><td className="muted">From</td><td><strong>{offer.issuerName}</strong><br /><code>{offer.issuerDid}</code></td></tr>
-          <tr><td className="muted">Type</td><td>{offer.type}</td></tr>
-          <tr><td className="muted">For</td><td>{offer.subjectPreview.name} · {offer.subjectPreview.degree}</td></tr>
-          <tr><td className="muted">Will be bound to</td><td><code>{pairwiseDid}</code><br /><span className="muted small">a DID only this issuer will ever see</span></td></tr>
-        </tbody>
-      </table>
-      {steps.length > 0 && <ul className="steps">{steps.map((s, i) => <li key={i}>✓ {s}</li>)}</ul>}
-      {error && <p className="error">{error}</p>}
-      {done ? (
-        <button onClick={() => navigate('/credentials')}>Open my vault</button>
-      ) : (
-        <button onClick={accept} disabled={busy}>{busy ? 'Claiming…' : 'Accept credential'}</button>
+    <div className="page-narrow stack-lg">
+      <div className="offer-head">
+        <div className="stack">
+          <h2 className="display display-md">Credential offer</h2>
+          <p className="quiet">Accepting it stores the signed credential in this wallet. The issuer learns only the identity below.</p>
+        </div>
+        <img src={sealUrl} alt="" width={84} height={84} />
+      </div>
+      <dl className="kv">
+        <dt>From</dt>
+        <dd><strong>{offer.issuerName}</strong><br /><span className="id">{offer.issuerDid}</span></dd>
+        <dt>Credential</dt>
+        <dd>{offer.type.replace(/([a-z])([A-Z])/g, '$1 $2')}</dd>
+        <dt>For</dt>
+        <dd>{offer.subjectPreview.name}, {offer.subjectPreview.degree}</dd>
+        <dt>Bound to</dt>
+        <dd><span className="id">{pairwiseDid}</span><br /><span className="quiet">an identity only this issuer will ever see</span></dd>
+      </dl>
+      {steps.length > 0 && (
+        <ol className="checklist fill-in">
+          {steps.map((s, i) => <li key={i} style={{ '--i': i } as React.CSSProperties}><span className="tick">✓</span><span>{s}</span></li>)}
+        </ol>
       )}
-    </section>
+      {error && <p className="notice error">{error}</p>}
+      {done ? (
+        <button className="button" onClick={() => navigate('/credentials')}>Open my vault</button>
+      ) : (
+        <div className="row">
+          <button className="button" onClick={accept} disabled={busy}>{busy ? 'Accepting' : 'Accept credential'}</button>
+          <button className="button subtle" onClick={() => navigate('/credentials')} disabled={busy}>Not now</button>
+        </div>
+      )}
+    </div>
   );
 }

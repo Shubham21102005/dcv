@@ -14,20 +14,24 @@ export function Unlock({ onUnlocked }: { onUnlocked?: () => void }) {
       setPassphrase('');
       onUnlocked?.();
     } catch (err) {
-      setError((err as { code?: string }).code === 'BAD_PASSPHRASE' ? 'Wrong passphrase' : (err as Error).message);
+      setError((err as { code?: string }).code === 'BAD_PASSPHRASE' ? 'That passphrase does not open this wallet.' : (err as Error).message);
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <section className="card narrow">
-      <h2>Vault locked</h2>
-      <p className="muted">Identity <code>{wallet.defaultDid}</code></p>
-      <label>Passphrase <input type="password" value={passphrase} onChange={(e) => setPassphrase(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && unlock()} autoFocus /></label>
-      {error && <p className="error">{error}</p>}
-      <button onClick={unlock} disabled={busy}>{busy ? 'Unlocking…' : 'Unlock'}</button>
-      <p className="muted">Lost the passphrase? <a href="#/restore">Restore from your 12 words</a>.</p>
-    </section>
+    <div className="page-narrow stack-lg">
+      <div className="stack">
+        <h2 className="display display-md">Wallet locked</h2>
+        <p className="quiet">Identity <span className="id">{wallet.defaultDid}</span></p>
+      </div>
+      <div className="stack">
+        <label className="field"><span>Passphrase</span><input type="password" value={passphrase} onChange={(e) => setPassphrase(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && unlock()} autoFocus autoComplete="current-password" /></label>
+        {error && <p className="notice error">{error}</p>}
+        <button className="button" onClick={unlock} disabled={busy}>{busy ? 'Unlocking' : 'Unlock'}</button>
+      </div>
+      <p className="quiet">Forgot it? <a href="#/restore">Restore the wallet from your 12 words</a>.</p>
+    </div>
   );
 }

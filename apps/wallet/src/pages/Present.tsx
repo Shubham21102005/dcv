@@ -3,7 +3,7 @@ import { CLAIM_LABELS, DISCLOSABLE_CLAIMS, type DisclosableClaim } from '@dcv/co
 import type { VerificationReport } from '@dcv/core/verifier/report';
 import { navigate, useWallet } from '../state/app';
 import type { RequestDetails, StoredCredential } from '../state/wallet';
-import { claimValue } from './Credentials';
+import { claimValue } from './CredentialCard';
 
 export function Present({ requestUrl }: { requestUrl: string }) {
   const wallet = useWallet();
@@ -51,58 +51,85 @@ export function Present({ requestUrl }: { requestUrl: string }) {
     }
   };
 
-  if (error && !req) return <section className="card narrow"><h2>Presentation request</h2><p className="error">{error}</p></section>;
-  if (!req) return <section className="card narrow"><p className="muted">Fetching request…</p></section>;
+  if (error && !req) {
+    return (
+      <div className="page-narrow stack-lg">
+        <h2 className="display display-md">This request cannot be opened</h2>
+        <p className="notice error">{error}</p>
+      </div>
+    );
+  }
+  if (!req) return <div className="page-narrow"><p className="quiet">Reading the request…</p></div>;
 
   if (result) {
     const green = result.report?.checks.filter((c) => c.ok).length ?? 0;
+    const ok = result.report?.ok === true;
     return (
-      <section className="card narrow">
-        <h2>{result.report?.ok ? 'Accepted by' : 'Rejected by'} {req.verifierName}</h2>
-        <p><span className={`badge ${result.report?.ok ? 'ok' : 'bad'}`}>{green}/8 checks passed</span></p>
+      <div className="page-narrow stack-lg">
+        <div className="stack">
+          <span className={`stamp ${ok ? 'ok' : 'bad'}`}>{ok ? 'Accepted' : 'Rejected'}</span>
+          <h2 className="display display-md">{ok ? `${req.verifierName} accepted your credential` : `${req.verifierName} rejected the presentation`}</h2>
+          <p className="lede">{green} of 8 checks passed. They received only the claims you ticked; everything else stayed sealed.</p>
+        </div>
         {result.report && (
-          <ul className="steps">
-            {result.report.checks.map((c) => <li key={c.name} className={c.ok ? '' : 'bad'}>{c.ok ? '✓' : '✗'} {c.label}{c.code ? ` (${c.code})` : ''}</li>)}
-          </ul>
+          <ol className="checklist fill-in">
+            {result.report.checks.map((c, i) => (
+              <li key={c.name} className={c.ok ? '' : 'bad'} style={{ '--i': i } as React.CSSProperties}>
+                <span className="tick">{c.ok ? '✓' : '✗'}</span>
+                <span>{c.label}{c.code && <span className="code">{c.code}</span>}</span>
+              </li>
+            ))}
+          </ol>
         )}
-        <p className="muted">The verifier only received the claims you ticked. Undisclosed claims stayed as digests.</p>
-        <button onClick={() => navigate('/credentials')}>Back to my vault</button>
-      </section>
+        <button className="button" onClick={() => navigate('/credentials')}>Back to your credentials</button>
+      </div>
     );
   }
 
+  const requestedCount = req.claims.length;
   return (
-    <section className="card narrow">
-      <h2>{req.verifierName} asks for</h2>
-      <p className="muted">Type <code>{req.credentialType}</code> · request expires {new Date(req.expiresAt * 1000).toLocaleTimeString()} · audience <code>{req.aud}</code></p>
-      {creds.length === 0 && <p className="error">You have no {req.credentialType} in your vault.</p>}
+    <div className="page-narrow stack-lg">
+      <div className="stack">
+        <h2 className="display display-md">{req.verifierName} asks for {requestedCount} {requestedCount === 1 ? 'claim' : 'claims'}</h2>
+        <p className="quiet">
+          From a {req.credentialType.replace(/([a-z])([A-Z])/g, '$1 $2')}. This request expires at {new Date(req.expiresAt * 1000).toLocaleTimeString()} and is signed for <span className="id">{req.aud}</span> only.
+        </p>
+      </div>
+      {creds.length === 0 && <p className="notice error">You have no {req.credentialType.replace(/([a-z])([A-Z])/g, '$1 $2')} in this wallet.</p>}
       {creds.length > 1 && (
-        <label>Credential
+        <label className="field"><span>Which credential</span>
           <select value={chosen?.id} onChange={(e) => setChosen(creds.find((c) => c.id === e.target.value) ?? null)}>
-            {creds.map((c) => <option key={c.id} value={c.id}>{claimValue(c, 'credentialSubject.degree.name')} · {c.issuerName}</option>)}
+            {creds.map((c) => <option key={c.id} value={c.id}>{claimValue(c, 'credentialSubject.degree.name')} from {c.issuerName}</option>)}
           </select>
         </label>
       )}
       {chosen && (
         <>
-          <h3>Share only what they asked for</h3>
-          <div className="consent">
-            {DISCLOSABLE_CLAIMS.map((path) => {
-              const requested = req.claims.includes(path);
-              return (
-                <label key={path} className={`claim ${consent.has(path) ? 'on' : ''} ${requested ? '' : 'extra'}`}>
-                  <input type="checkbox" checked={consent.has(path)} onChange={() => toggle(path)} />
-                  <span>{CLAIM_LABELS[path as DisclosableClaim]}{requested ? '' : <em> (not requested)</em>}</span>
-                  <strong>{claimValue(chosen, path)}</strong>
-                </label>
-              );
-            })}
+          <div>
+            <h3 className="subtitle">Choose what to share</h3>
+            <p className="quiet" style={{ margin: '4px 0 10px' }}>Only the ticked lines leave this device. The rest stay as salted digests the verifier cannot reverse.</p>
+            <div>
+              {DISCLOSABLE_CLAIMS.map((path) => {
+                const requested = req.claims.includes(path);
+                const on = consent.has(path);
+                return (
+                  <label key={path} className={`choice${on ? '' : ' off'}`}>
+                    <input type="checkbox" checked={on} onChange={() => toggle(path)} />
+                    <span>{CLAIM_LABELS[path as DisclosableClaim]}{!requested && <span className="note">not requested</span>}</span>
+                    <span className="value">{claimValue(chosen, path)}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="quiet" style={{ marginTop: 10 }}>Always visible, because they are part of the signed envelope: the issuer, the credential type, its validity dates, its revocation entry and your pairwise identity for this issuer.</p>
           </div>
-          <p className="muted small">Always sent in clear (they are part of the signed envelope): issuer, type, validity, status entry, your pairwise DID for this issuer.</p>
-          {error && <p className="error">{error}</p>}
-          <button onClick={present} disabled={busy}>{busy ? 'Presenting…' : `Present ${consent.size} claim(s)`}</button>
+          {error && <p className="notice error">{error}</p>}
+          <div className="row">
+            <button className="button" onClick={present} disabled={busy}>{busy ? 'Sharing' : `Share ${consent.size} ${consent.size === 1 ? 'claim' : 'claims'}`}</button>
+            <button className="button subtle" onClick={() => navigate('/credentials')} disabled={busy}>Decline</button>
+          </div>
         </>
       )}
-    </section>
+    </div>
   );
 }

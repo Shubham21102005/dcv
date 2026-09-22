@@ -32,33 +32,38 @@ export function RequestBuilder(props: { onCreated: (r: RequestSummary) => void }
   };
 
   return (
-    <section className="card">
-      <h2>New presentation request</h2>
-      <p className="muted">Credential type: <code>UniversityDegreeCredential</code>. Tick only what Acme actually needs.</p>
-      <div className="claims">
+    <section className="stack">
+      <div>
+        <h2 className="title">Ask for a degree credential</h2>
+        <p className="quiet" style={{ marginTop: 4 }}>Tick only what the hiring decision needs. The holder decides what to share.</p>
+      </div>
+      <div>
         {DISCLOSABLE_CLAIMS.map((c) => (
-          <label key={c} className={selected.has(c) ? 'claim on' : 'claim'}>
+          <label key={c} className={`choice${selected.has(c) ? '' : ' off'}`}>
             <input type="checkbox" checked={selected.has(c)} onChange={() => toggle(c)} />
             <span>{CLAIM_LABELS[c as DisclosableClaim]}</span>
-            <code>{c}</code>
+            <span className="id">{c.replace('credentialSubject.', '')}</span>
           </label>
         ))}
       </div>
-      <button onClick={create} disabled={busy}>{busy ? 'Creating…' : 'Create request'}</button>
-      {error && <p className="error">{error}</p>}
+      <div className="row">
+        <button className="button" onClick={create} disabled={busy}>{busy ? 'Creating' : 'Create request'}</button>
+        <span className="quiet">{selected.size} of {DISCLOSABLE_CLAIMS.length} claims</span>
+      </div>
+      {error && <p className="notice error">{error}</p>}
       {created && (
-        <div className="offer">
-          <div>
-            <h3>Request ready</h3>
-            <p>Scan with the wallet or open the link:</p>
-            <p>
-              <a href={created.walletLink} target="_blank" rel="noopener noreferrer" className="primary-link">Open in wallet</a>{' '}
-              · <button className="ghost" onClick={() => navigator.clipboard.writeText(created.walletLink)}>Copy link</button>
+        <div className="request-ready">
+          <div className="stack">
+            <h3 className="subtitle">Request ready for the holder</h3>
+            <p className="ink-2">Scan the code with the wallet, or open the link on this machine.</p>
+            <p className="row">
+              <a href={created.walletLink} target="_blank" rel="noopener noreferrer" className="button secondary">Open in wallet</a>
+              <button className="button subtle" onClick={() => navigator.clipboard.writeText(created.walletLink)}>Copy link</button>
             </p>
-            <p className="muted">Request URL: <code>{created.url}</code></p>
-            <p className="muted">Expires {new Date(created.expiresAt * 1000).toLocaleTimeString()} · single-use nonce</p>
+            <p className="quiet">Single-use nonce. Expires at {new Date(created.expiresAt * 1000).toLocaleTimeString()}.</p>
+            <p className="id">{created.url}</p>
           </div>
-          <QRCodeSVG value={created.walletLink} size={148} level="M" includeMargin />
+          <div className="qr"><QRCodeSVG value={created.walletLink} size={132} level="M" bgColor="transparent" fgColor="#122a47" /></div>
         </div>
       )}
     </section>

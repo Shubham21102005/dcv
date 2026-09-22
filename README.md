@@ -49,6 +49,7 @@ pnpm e2e        # 4 verification rounds incl. revocation and the issuer process 
 | `pnpm e2e:full` | Unattended: reset → boot → e2e → tear down |
 | `pnpm pw` | Playwright: 3 browser specs (flow, attack lab, wipe & restore) |
 | `pnpm privacy-scan` | Grep every Anvil tx/log and IPFS pin for the real PII in `data/issuer.json` |
+| `node packages/design/scripts/guilloche.mjs` | Regenerate the security-print textures (`packages/design/*.svg`) |
 | `pnpm test` | Vitest for every package (each spawns its own private Anvil) |
 | `pnpm test:contracts` | Foundry unit + fuzz tests |
 | `pnpm typecheck` | `tsc` for every package + scripts |
@@ -64,6 +65,7 @@ apps/issuer          Hono API + vanilla console (offers, claims, revocation, gov
 apps/verifier-api    Hono API: presentation requests, 8-check pipeline, attack lab
 apps/verifier-web    Vite/React: request builder, report card, attack lab
 apps/wallet          Vite/React: onboarding, encrypted vault, accept/present, backup & restore
+packages/design      @dcv/design: the shared visual identity (tokens, theme.css, self-hosted fonts, guilloché, seal) - see its DESIGN.md
 e2e                  Playwright specs
 scripts              dev/reset/ipfs/deploy/e2e/privacy-scan
 ```

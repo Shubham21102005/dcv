@@ -15,14 +15,15 @@
   };
   const short = (s, n = 10) => (typeof s === 'string' && s.length > 2 * n + 1 ? `${s.slice(0, n)}…${s.slice(-n)}` : s);
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const mark = (kind, text) => `<span class="mark ${kind}">${esc(text)}</span>`;
   let toastTimer;
   const toast = (msg, isError = false) => {
     const el = $('#toast');
     el.textContent = msg;
-    el.style.background = isError ? '#b91c1c' : '#1b1f24';
+    el.classList.toggle('error', isError);
     el.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('show'), 4000);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 4500);
   };
 
   let issuer = null;
@@ -43,13 +44,14 @@
     $('#issuer-did').textContent = issuer.did;
     $('#id-did').textContent = issuer.did;
     $('#id-address').textContent = issuer.address;
+    const types = Object.entries(issuer.trustedFor).filter(([, v]) => v).map(([k]) => k.replace(/([a-z])([A-Z])/g, '$1 $2'));
     $('#id-trusted').innerHTML = issuer.trusted
-      ? `<span class="badge ok">active</span> for ${Object.entries(issuer.trustedFor).filter(([, v]) => v).map(([k]) => `<code>${esc(k)}</code>`).join(', ') || '<em>no types</em>'}`
-      : '<span class="badge bad">revoked</span>';
+      ? `${mark('ok', 'active')} <span class="ink-2">${types.length ? esc(types.join(', ')) : 'no credential types yet'}</span>`
+      : mark('bad', 'revoked by governance');
     $('#id-status').innerHTML = status
-      ? `v${status.version} · <code title="${esc(status.cid)}">${esc(short(status.cid))}</code> · hash <code>${esc(short(status.contentHash, 8))}</code>`
-      : 'not published';
-    $('#id-blob').innerHTML = health.blobStore === 'kubo' ? '<span class="badge ok">Kubo IPFS</span>' : '<span class="badge warn">memory (IPFS down)</span>';
+      ? `version ${status.version}, anchored on chain as <span class="id" title="${esc(status.cid)}">${esc(short(status.cid, 12))}</span>`
+      : 'not published yet';
+    $('#id-blob').innerHTML = health.blobStore === 'kubo' ? 'the local IPFS node' : mark('warn', 'memory only: IPFS is not running');
   }
 
   // ---- issue ------------------------------------------------------------------
@@ -67,14 +69,14 @@
       $('#offer').classList.remove('hidden');
       $('#offer-link').href = offer.walletLink;
       $('#offer-url').textContent = offer.offerUrl;
-      $('#copy-link').onclick = () => navigator.clipboard.writeText(offer.walletLink).then(() => toast('Wallet link copied'));
-      toast('Offer created - open it in the wallet');
+      $('#copy-link').onclick = () => navigator.clipboard.writeText(offer.walletLink).then(() => toast('Link copied'));
+      toast('Offer created. Open it in the wallet to claim it.');
     } catch (err) {
       toast(err.message, true);
     }
   });
 
-  // ---- credentials table --------------------------------------------------------
+  // ---- register table --------------------------------------------------------------
   async function loadCredentials() {
     const { credentials } = await api('/credentials');
     const tbody = $('#credentials tbody');
@@ -82,18 +84,18 @@
       ? credentials
           .map(
             (r) => `<tr>
-        <td><code title="${esc(r.id)}">${esc(short(r.id, 12))}</code></td>
-        <td>${esc(r.type)}</td>
-        <td>${r.statusListIndex}</td>
-        <td><code title="${esc(r.holderDidHash)}">${esc(short(r.holderDidHash, 8))}</code></td>
-        <td>${r.revoked ? '<span class="badge bad">revoked</span>' : '<span class="badge ok">valid</span>'}</td>
+        <td><span class="id" title="${esc(r.id)}">${esc(short(r.id, 12))}</span></td>
+        <td>${esc(r.type.replace(/([a-z])([A-Z])/g, '$1 $2'))}</td>
+        <td class="num">${r.statusListIndex}</td>
+        <td><span class="id" title="${esc(r.holderDidHash)}">${esc(short(r.holderDidHash, 8))}</span></td>
+        <td>${r.revoked ? mark('bad', 'revoked') : mark('ok', 'valid')}</td>
         <td>
-          <button class="ghost" data-preview="${esc(r.id)}">What I signed</button>
-          ${r.revoked ? `<button class="ghost" data-unrevoke="${esc(r.id)}">Un-revoke</button>` : `<button class="ghost" data-revoke="${esc(r.id)}">Revoke</button>`}
+          <button class="button subtle small" data-preview="${esc(r.id)}">What was signed</button>
+          ${r.revoked ? `<button class="button secondary small" data-unrevoke="${esc(r.id)}">Reinstate</button>` : `<button class="button destructive small" data-revoke="${esc(r.id)}">Revoke</button>`}
         </td></tr>`,
           )
           .join('')
-      : '<tr><td colspan="6" class="muted">No credentials issued yet.</td></tr>';
+      : '<tr class="quiet-row"><td colspan="6">Nothing issued yet.</td></tr>';
   }
   $('#credentials').addEventListener('click', async (e) => {
     const b = e.target.closest('button');
@@ -107,7 +109,7 @@
         const id = b.dataset.revoke || b.dataset.unrevoke;
         b.disabled = true;
         const r = await api(`/credentials/${id}/${b.dataset.revoke ? 'revoke' : 'unrevoke'}`, { method: 'POST' });
-        toast(`${r.revoked ? 'Revoked' : 'Un-revoked'} index ${r.statusListIndex} · status list v${r.version} anchored`);
+        toast(`${r.revoked ? 'Revoked' : 'Reinstated'}: bit ${r.statusListIndex} flipped, status list version ${r.version} anchored on chain.`);
         await Promise.all([loadCredentials(), loadIdentity()]);
       }
     } catch (err) {
@@ -120,10 +122,10 @@
     if (!issuer) return;
     const info = await api(`/admin/issuers/${issuer.address}`);
     $('#issuers tbody').innerHTML = `<tr>
-      <td><code>${esc(info.name)}</code><br /><span class="muted">${esc(info.address)}</span></td>
-      <td>${info.active ? '<span class="badge ok">active</span>' : '<span class="badge bad">revoked</span>'}</td>
-      <td>${info.trustedFor.UniversityDegreeCredential ? '<span class="badge ok">allowed</span>' : '<span class="badge bad">not allowed</span>'}</td>
-      <td>${info.active ? `<button class="ghost" data-revoke-issuer="${info.address}">Revoke issuer</button>` : `<button class="ghost" data-reactivate-issuer="${info.address}">Reactivate</button>`}</td>
+      <td><strong>${esc(info.name)}</strong><br /><span class="id">${esc(info.address)}</span></td>
+      <td>${info.active ? mark('ok', 'active') : mark('bad', 'revoked')}</td>
+      <td>${info.trustedFor.UniversityDegreeCredential ? mark('ok', 'allowed') : mark('bad', 'not allowed')}</td>
+      <td>${info.active ? `<button class="button destructive small" data-revoke-issuer="${info.address}">Revoke issuer</button>` : `<button class="button secondary small" data-reactivate-issuer="${info.address}">Reactivate</button>`}</td>
     </tr>`;
   }
   $('#issuers').addEventListener('click', async (e) => {
@@ -132,7 +134,7 @@
     try {
       const addr = b.dataset.revokeIssuer || b.dataset.reactivateIssuer;
       await api(`/admin/issuers/${addr}/${b.dataset.revokeIssuer ? 'revoke' : 'reactivate'}`, { method: 'POST' });
-      toast(b.dataset.revokeIssuer ? 'Issuer revoked on-chain' : 'Issuer reactivated on-chain');
+      toast(b.dataset.revokeIssuer ? 'Issuer revoked on chain. Verifiers will reject its credentials from the next block.' : 'Issuer reactivated on chain.');
       await Promise.all([loadIssuers(), loadIdentity(), loadEvents()]);
     } catch (err) {
       toast(err.message, true);
@@ -146,7 +148,7 @@
     const credentialType = new FormData($('#type-form')).get('credentialType');
     try {
       await api('/admin/types', { method: b.dataset.action === 'allow' ? 'POST' : 'DELETE', body: { issuer: issuer.address, credentialType } });
-      toast(`${b.dataset.action === 'allow' ? 'Allowed' : 'Disallowed'} ${credentialType}`);
+      toast(`${b.dataset.action === 'allow' ? 'Allowed' : 'Disallowed'} ${credentialType} for this issuer.`);
       await Promise.all([loadIssuers(), loadIdentity(), loadEvents()]);
     } catch (err) {
       toast(err.message, true);
@@ -157,7 +159,7 @@
     const f = new FormData(e.target);
     try {
       await api('/admin/issuers', { method: 'POST', body: { address: f.get('address'), name: f.get('name'), metadataURI: '' } });
-      toast('Issuer registered');
+      toast('Issuer registered.');
       await loadEvents();
     } catch (err) {
       toast(err.message, true);
@@ -173,8 +175,8 @@
       .slice()
       .reverse()
       .map(
-        (ev) => `<tr><td>${ev.blockNumber}</td><td>${esc(ev.contract)}</td><td><strong>${esc(ev.name)}</strong></td>
-        <td><code>${esc(JSON.stringify(ev.args))}</code></td></tr>`,
+        (ev) => `<tr><td class="num">${ev.blockNumber}</td><td>${esc(ev.contract)}</td><td><strong>${esc(ev.name)}</strong></td>
+        <td>${esc(JSON.stringify(ev.args))}</td></tr>`,
       )
       .join('');
   }
@@ -182,11 +184,11 @@
   $('#privacy-scan').addEventListener('click', async () => {
     const out = $('#privacy-result');
     out.classList.remove('hidden');
-    out.textContent = 'scanning…';
+    out.textContent = 'Scanning every block, log and pin…';
     try {
       const r = await api('/admin/privacy-scan');
       out.textContent = JSON.stringify(r, null, 2);
-      toast(`${r.hits?.length ?? 0} hits over ${r.blocks} blocks / ${r.logs} logs / ${r.blobs} blobs for ${r.terms} terms`);
+      toast(`${r.hits.length} hits over ${r.blocks} blocks, ${r.logs} logs and ${r.blobs} blobs for ${r.terms} terms.`);
     } catch (err) {
       out.textContent = err.message;
       toast(err.message, true);
@@ -194,10 +196,10 @@
   });
 
   $('#reset-demo').addEventListener('click', async () => {
-    if (!confirm('Truncate the issuer ledger and republish status list v1?')) return;
+    if (!confirm('Empty the register and publish a fresh, all-clear revocation list?')) return;
     try {
       const r = await api('/admin/reset', { method: 'POST' });
-      toast(`Ledger reset · status list v${r.version}`);
+      toast(`Register emptied. Revocation list version ${r.version} anchored.`);
       $('#offer').classList.add('hidden');
       $('#preview').classList.add('hidden');
       await Promise.all([loadCredentials(), loadIdentity(), loadEvents()]);

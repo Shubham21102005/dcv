@@ -90,7 +90,7 @@ async function runChecks(vp: string, req: PresentationRequest, deps: PipelineDep
     set(
       problems.length
         ? makeCheck('format', false, problems.join('; '), typeOk ? 'FORMAT_INVALID' : 'TYPE_MISMATCH', { types })
-        : makeCheck('format', true, `vc+sd-jwt · ${types.join(', ')} · ${peek.disclosures.length} disclosure(s) presented`, undefined, { types, typ: peek.header['typ'], alg: peek.header['alg'] }),
+        : makeCheck('format', true, `vc+sd-jwt carrying ${types.join(' and ')}; ${peek.disclosures.length} disclosure${peek.disclosures.length === 1 ? '' : 's'} presented`, undefined, { types, typ: peek.header['typ'], alg: peek.header['alg'] }),
     );
   }
 

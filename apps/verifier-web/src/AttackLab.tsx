@@ -3,11 +3,11 @@ import type { VerificationReport } from '@dcv/core/verifier/report';
 import { api, type AttackKind } from './api';
 import { Report } from './Report';
 
-const ATTACKS: Array<{ kind: AttackKind; label: string; blurb: string }> = [
-  { kind: 'tamper', label: 'Tamper a disclosure', blurb: 'flip one character inside a disclosed claim' },
-  { kind: 'replay', label: 'Replay', blurb: 'send the same presentation a second time' },
-  { kind: 'expire', label: 'Expire', blurb: 'present one hour later' },
-  { kind: 'audience', label: 'Wrong audience', blurb: 'relay it to another verifier' },
+const ATTACKS: Array<{ kind: AttackKind; label: string; how: string }> = [
+  { kind: 'tamper', label: 'Tamper a disclosure', how: 'change one character inside a disclosed claim' },
+  { kind: 'replay', label: 'Replay', how: 'send the same presentation a second time' },
+  { kind: 'expire', label: 'Expire', how: 'present it an hour later' },
+  { kind: 'audience', label: 'Wrong audience', how: 'relay it to another verifier' },
 ];
 
 export function AttackLab({ requestId }: { requestId: string }) {
@@ -28,18 +28,24 @@ export function AttackLab({ requestId }: { requestId: string }) {
   };
 
   return (
-    <section className="card">
-      <h2>Attack lab <span className="muted">(dry runs on the stored presentation)</span></h2>
-      <div className="attacks">
-        {ATTACKS.map((a) => (
-          <button key={a.kind} className="attack" onClick={() => run(a.kind)} disabled={busy !== null}>
-            <strong>{busy === a.kind ? 'Running…' : a.label}</strong>
-            <span>{a.blurb}</span>
-          </button>
-        ))}
+    <section className="stack">
+      <div>
+        <h2 className="title">Try to break it</h2>
+        <p className="quiet" style={{ marginTop: 4 }}>Each attack re-runs the stored presentation with one change, as a dry run. Exactly one check should fail.</p>
       </div>
-      {error && <p className="error">{error}</p>}
-      {result && <Report report={result.report} title={`After "${ATTACKS.find((a) => a.kind === result.attack)?.label}"`} />}
+      <ul className="attacks">
+        {ATTACKS.map((a) => (
+          <li key={a.kind}>
+            <div>
+              <div className="what">{a.label}</div>
+              <div className="how">{a.how}</div>
+            </div>
+            <button className="button secondary small attack" onClick={() => run(a.kind)} disabled={busy !== null}>{busy === a.kind ? 'Running' : `Run: ${a.label}`}</button>
+          </li>
+        ))}
+      </ul>
+      {error && <p className="notice error">{error}</p>}
+      {result && <Report report={result.report} title={`After "${ATTACKS.find((a) => a.kind === result.attack)?.label}"`} animate />}
     </section>
   );
 }
