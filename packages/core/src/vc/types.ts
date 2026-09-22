@@ -5,15 +5,15 @@ export const DEGREE_CREDENTIAL_TYPE = 'UniversityDegreeCredential';
 
 export type StatusPurpose = 'revocation' | 'suspension';
 
-export interface BitstringStatusListEntry {
+export type BitstringStatusListEntry = {
   id: string;
   type: 'BitstringStatusListEntry';
   statusPurpose: StatusPurpose;
   statusListIndex: string;
   statusListCredential: string;
-}
+};
 
-export interface DegreeSubject {
+export type DegreeSubject = {
   id: string;
   name: string;
   birthDate: string;
@@ -24,12 +24,12 @@ export interface DegreeSubject {
     grade: string;
     awardedOn: string;
   };
-}
+};
 
 /** The subject fields an issuer types into the form (id is derived from the holder's DID). */
 export type DegreeSubjectInput = Omit<DegreeSubject, 'id'>;
 
-export interface CredentialV2<S = Record<string, unknown>> {
+export type CredentialV2<S = Record<string, unknown>> = {
   '@context': string[];
   id: string;
   type: string[];
@@ -38,7 +38,7 @@ export interface CredentialV2<S = Record<string, unknown>> {
   validUntil?: string;
   credentialSubject: S;
   credentialStatus?: BitstringStatusListEntry;
-}
+};
 
 export type DegreeCredential = CredentialV2<DegreeSubject>;
 

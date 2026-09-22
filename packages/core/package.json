@@ -16,6 +16,7 @@
   "dependencies": {
     "@noble/hashes": "2.4.0",
     "@scure/bip39": "2.4.0",
+    "@sd-jwt/core": "0.21.0",
     "did-resolver": "^5.0.1",
     "ethr-did-resolver": "14.1.4",
     "viem": "2.56.8",

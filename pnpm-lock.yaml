@@ -200,6 +200,9 @@ importers:
       '@scure/bip39':
         specifier: 2.4.0
         version: 2.4.0
+      '@sd-jwt/core':
+        specifier: 0.21.0
+        version: 0.21.0
       did-resolver:
         specifier: ^5.0.1
         version: 5.0.1
@@ -427,6 +430,9 @@ packages:
     resolution: {integrity: sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA==}
     engines: {node: '>= 20.19.0'}
 
+  '@owf/identity-common@0.4.0':
+    resolution: {integrity: sha512-YvbEeIuLE+TlR7wfzsfR3tAzNPFssbZ559QZactwGVunl1zgZG0smzArQwpgc3qNv0LrLdeCBzPd2ZcyfGyDHQ==}
+
   '@oxc-project/types@0.150.0':
     resolution: {integrity: sha512-rDS5/31E9HfPl/CIzGrn0DOlvBbXFseQ5URJ9sYMfstbKLD/c6Gm9vmRzRGDdAXyOIL4zmO37lc9RIwYqVruZw==}
 
@@ -540,6 +546,9 @@ packages:
 
   '@scure/bip39@2.4.0':
     resolution: {integrity: sha512-82dxFbZUYboyOf0AXiydsQrFQ5Q4h9mX+O2UkE91ROYmsc0BKMGZLwDmy96Jpa2+vrtoxomjUhy1RPIgH/r2nA==}
+
+  '@sd-jwt/core@0.21.0':
+    resolution: {integrity: sha512-b4ODdTXT+QvfZkYlu9i8goV3fybdXD7wkOugplO1OyDzPvePelgJlzqT4wjwnBIM+E6ktH4h79XMGKAlJJEq4A==}
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
@@ -1242,6 +1251,8 @@ snapshots:
 
   '@noble/hashes@2.4.0': {}
 
+  '@owf/identity-common@0.4.0': {}
+
   '@oxc-project/types@0.150.0': {}
 
   '@rolldown/binding-android-arm-eabi@1.2.9':
@@ -1307,6 +1318,10 @@ snapshots:
   '@scure/bip39@2.4.0':
     dependencies:
       '@noble/hashes': 2.4.0
+
+  '@sd-jwt/core@0.21.0':
+    dependencies:
+      '@owf/identity-common': 0.4.0
 
   '@standard-schema/spec@1.1.0': {}
 
