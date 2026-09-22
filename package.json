@@ -11,8 +11,8 @@
   "scripts": {
     "test": "pnpm -r --workspace-concurrency=1 --if-present test",
     "typecheck": "pnpm -r --if-present typecheck && tsc -p scripts/tsconfig.json",
-    "test:contracts": "forge test --root packages/contracts",
-    "chain": "anvil --chain-id 31337 --port 8545",
+    "test:contracts": "node scripts/foundry.mjs forge test --root packages/contracts",
+    "chain": "node scripts/foundry.mjs anvil --chain-id 31337 --port 8545",
     "deploy:local": "tsx scripts/deploy.ts",
     "build:contracts": "node scripts/build-contracts.mjs",
     "env:init": "node scripts/env-init.mjs",
