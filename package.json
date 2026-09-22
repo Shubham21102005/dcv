@@ -11,15 +11,22 @@
   "scripts": {
     "test": "pnpm -r --workspace-concurrency=1 --if-present test",
     "typecheck": "pnpm -r --if-present typecheck",
-    "test:contracts": "forge test --root packages/contracts"
+    "test:contracts": "forge test --root packages/contracts",
+    "chain": "anvil --chain-id 31337 --port 8545",
+    "deploy:local": "tsx scripts/deploy.ts",
+    "build:contracts": "node scripts/build-contracts.mjs",
+    "env:init": "node scripts/env-init.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.13.6",
     "concurrently": "10.0.5",
-    "dotenv": "^18.0.1",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
     "vitest": "5.0.1",
     "wait-on": "9.1.0"
+  },
+  "dependencies": {
+    "@dcv/core": "workspace:*",
+    "viem": "2.56.8"
   }
 }

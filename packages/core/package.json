@@ -12,5 +12,8 @@
     "test:unit": "vitest run --project unit --project vault",
     "test:integration": "vitest run --project integration",
     "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "viem": "2.56.8"
   }
 }

@@ -12,3 +12,5 @@ fuzz = { runs = 256 }
 [lint]
 # The ERC-1056 registry is vendored verbatim from ethr-did-registry@2.0.0; do not lint it.
 ignore = ["src/EthereumDIDRegistry.sol"]
+# uint64(block.timestamp) is intentional in our small contracts.
+exclude_lints = ["unsafe-typecast"]
