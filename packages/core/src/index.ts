@@ -13,3 +13,6 @@ export * from './crypto/secp.js';
 export * from './crypto/mnemonic.js';
 export * from './crypto/es256k.js';
 export * from './crypto/jws.js';
+export * from './vc/types.js';
+export * from './vc/schema.js';
+export * from './vc/build.js';
