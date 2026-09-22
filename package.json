@@ -15,15 +15,17 @@
     "chain": "anvil --chain-id 31337 --port 8545",
     "deploy:local": "tsx scripts/deploy.ts",
     "build:contracts": "node scripts/build-contracts.mjs",
-    "env:init": "node scripts/env-init.mjs"
+    "env:init": "node scripts/env-init.mjs",
+    "dev": "node scripts/dev.mjs",
+    "ipfs": "node scripts/ipfs.mjs",
+    "reset": "node scripts/reset.mjs",
+    "stop:issuer": "node scripts/stop-issuer.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.13.6",
-    "concurrently": "10.0.5",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
-    "vitest": "5.0.1",
-    "wait-on": "9.1.0"
+    "vitest": "5.0.1"
   },
   "dependencies": {
     "@dcv/core": "workspace:*",

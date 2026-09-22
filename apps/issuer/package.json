@@ -1,0 +1,24 @@
+{
+  "name": "@dcv/issuer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@dcv/core": "workspace:*",
+    "@hono/node-server": "2.1.1",
+    "hono": "4.13.8",
+    "viem": "2.56.8"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.6",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3",
+    "vitest": "5.0.1"
+  }
+}

@@ -24,6 +24,7 @@ export default defineConfig({
           name: 'integration',
           include: ['test/integration/**/*.test.ts'],
           globalSetup: ['test/setup/anvil.global.ts'],
+          fileParallelism: false,
           testTimeout: 60_000,
           hookTimeout: 120_000,
         },

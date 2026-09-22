@@ -28,6 +28,13 @@ export interface PeekedSdJwt {
   undisclosedDigests: string[];
 }
 
+/** Every `_sd` digest anywhere in a signed payload (depth-first). */
+export function listSdDigests(payload: unknown): string[] {
+  const out: string[] = [];
+  collectDigests(payload, out);
+  return out;
+}
+
 function collectDigests(node: unknown, out: string[]): void {
   if (Array.isArray(node)) {
     for (const v of node) collectDigests(v, out);
@@ -52,8 +59,7 @@ export async function peekSdJwt(compact: string): Promise<PeekedSdJwt> {
     })),
   );
   const claims = await getClaims<Record<string, unknown>>(decoded.jwt.payload, decoded.disclosures, hasher);
-  const allDigests: string[] = [];
-  collectDigests(payload, allDigests);
+  const allDigests = listSdDigests(payload);
   const presented = new Set(disclosures.map((d) => d.digest));
   const cnfKid = typeof payload.cnf?.kid === 'string' ? payload.cnf.kid : '';
   return {

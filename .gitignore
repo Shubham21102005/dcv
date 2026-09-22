@@ -5,6 +5,8 @@ cache/
 .ipfs/
 deployments/*.json
 data/issuer.json
+data/issuer.json.tmp
+data/test-*.json
 data/issuer.pid
 .env
 test-results/

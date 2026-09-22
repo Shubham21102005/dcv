@@ -30,3 +30,5 @@ export * from './vault/record.js';
 export * from './vault/keyring.js';
 export * from './vault/file.js';
 export * from './vault/store.js';
+export * from './ipfs/cid.js';
+export * from './ipfs/blobStore.js';
