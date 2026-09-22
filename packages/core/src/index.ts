@@ -25,3 +25,8 @@ export * from './sdjwt/verify.js';
 export * from './offer/proof.js';
 export * from './status/bitstring.js';
 export * from './status/credential.js';
+export * from './vault/kdf.js';
+export * from './vault/record.js';
+export * from './vault/keyring.js';
+export * from './vault/file.js';
+export * from './vault/store.js';
