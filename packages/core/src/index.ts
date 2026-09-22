@@ -8,3 +8,8 @@ export * from './chain/trustRegistry.js';
 export * from './chain/statusRegistry.js';
 export * from './chain/vaultPointer.js';
 export * from './chain/anvil.js';
+export * from './crypto/hkdf.js';
+export * from './crypto/secp.js';
+export * from './crypto/mnemonic.js';
+export * from './crypto/es256k.js';
+export * from './crypto/jws.js';
